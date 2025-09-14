@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class Tensor:
     grad = None
     grad_fn = None
@@ -19,50 +20,33 @@ class Tensor:
 
     def __str__(self):
         return str(self.data)
-
     def __mul__(self, other):
+        return self._apply_op(Mul, other)
+    def __rmul__(self, other):
+        return self._apply_op(Mul, other, reverse = True)
+    def __add__(self, other):
+        return self._apply_op(Add, other)
+    def __pow__(self, index):
+        return self._apply_op(Pow, index)
+
+    def _apply_op(self, op, other, reverse = False):
         """
+        Applies a binary operation between self and other
+
         Normalises variables to Tensor if necessary
         Instantiates operation class and forwards the data
-        Updates grad_fn if required with that instance
+        Updates grad_fn with that instance if required
+
+        reverse changes order (useful to rmul-like ops)
         """
         other = other if isinstance(other, Tensor) else Tensor(other)
 
-        op = Mul()
-        result = op.forward(self, other)
+        op = op()
 
-        if self.requires_grad:
-            result.grad_fn = op
-
-        return result
-
-    def __rmul__(self, other):
-        other = other if isinstance(other, Tensor) else Tensor(other)
-
-        op = Mul()
-        result = op.forward(other, self)
-
-        if self.requires_grad:
-            result.grad_fn = op
-
-        return result
-
-    def __add__(self, other):
-        other = other if isinstance(other, Tensor) else Tensor(other)
-
-        op = Add()
-        result = op.forward(self, other)
-
-        if self.requires_grad:
-            result.grad_fn = op
-
-        return result
-
-    def __pow__(self, index):
-        index = index if isinstance(index, Tensor) else Tensor(index)
-
-        op = Pow()
-        result = op.forward(self, index)
+        if reverse:
+            result = op.forward(other, self)
+        else:
+            result = op.forward(self, other)
 
         if self.requires_grad:
             result.grad_fn = op
@@ -80,9 +64,24 @@ class Tensor:
     def shape(self):
         return self.data.shape
 
-class Mul:
+
+class Function:
     ctx = None
 
+    def _update_grad(self, tensor, grad):
+        """
+        If requires_grad, checks is_leaf
+         - If it is True the grad needs to be accumulated in the node
+         - If it is False the grad needs to propagated to the node's father
+        """
+        if tensor.requires_grad:
+            if tensor.is_leaf:
+                tensor.grad += grad
+            else:
+                tensor.grad_fn.backward(grad)
+
+
+class Mul(Function):
     def forward(self, tensor, other):
         """
         Creates a Tensor result
@@ -98,34 +97,17 @@ class Mul:
 
     def backward(self, grad_output):
         """
-        Retrieves the data in ctx
-
-        If requires_grad, checks is_leaf
-         - If it is True the grad needs to be accumulated in the node
-         - If it is False the grad needs to propagated to the node's father
+        Retrieves the data in ctx and updates grads
 
         ax d/dx = a
         """
 
-        tensor = self.ctx[0]
-        other = self.ctx[1]
+        tensor, other = self.ctx
 
-        grad_tensor = other.data * grad_output
-        grad_other = tensor.data * grad_output
+        self._update_grad(tensor, other.data * grad_output)
+        self._update_grad(other, tensor.data * grad_output)
 
-        if tensor.requires_grad:
-            if tensor.is_leaf:
-                tensor.grad += grad_tensor
-            else:
-                tensor.grad_fn.backward(grad_tensor)
-
-        if other.requires_grad:
-            if other.is_leaf:
-                other.grad += grad_other
-            else:
-                other.grad_fn.backward(grad_other)
-class Add:
-    ctx = None
+class Add(Function):
     def forward(self, tensor, other):
         """
         Creates a Tensor result
@@ -141,32 +123,17 @@ class Add:
 
     def backward(self, grad_output):
         """
-        Retrieves the data in ctx
-
-        If requires_grad, checks is_leaf
-         - If it is True the grad needs to be accumulated in the node
-         - If it is False the grad needs to propagated to the node's father
+        Retrieves the data in ctx and updates grads
 
         (a + x) d/dx = 1
         """
 
-        tensor = self.ctx[0]
-        other = self.ctx[1]
+        tensor, other = self.ctx
 
-        if tensor.requires_grad:
-            if tensor.is_leaf:
-                tensor.grad += grad_output
-            else:
-                tensor.grad_fn.backward(grad_output)
+        self._update_grad(tensor, grad_output)
+        self._update_grad(other, grad_output)
 
-        if other.requires_grad:
-            if other.is_leaf:
-                other.grad += grad_output
-            else:
-                other.grad_fn.backward(grad_output)
-
-class Pow:
-    ctx = None
+class Pow(Function):
     def forward(self, tensor, index):
         """
         Creates a Tensor result
@@ -182,52 +149,30 @@ class Pow:
 
     def backward(self, grad_output):
         """
-        Retrieves the data in ctx
-
-        If requires_grad, checks is_leaf
-         - If it is True the grad needs to be accumulated in the node
-         - If it is False the grad needs to propagated to the node's father
+        Retrieves the data in ctx and updates grads
 
         x^a d/dx = a * x^(a-1)
         a^x d/dx = a^x * ln(a)
         """
 
-        tensor = self.ctx[0]
-        index = self.ctx[1]
-        result = self.ctx[2]
+        tensor, index, result = self.ctx
 
         tensor_grad = index.data * (np.pow(tensor.data, (index.data - 1))) * grad_output
         index_grad = result * np.log(tensor.data) * grad_output
 
-        if tensor.requires_grad:
-            if tensor.is_leaf:
-                tensor.grad += tensor_grad
-            else:
-                tensor.grad_fn.backward(tensor_grad)
-
-        if index.requires_grad:
-            if index.is_leaf:
-                index.grad += index_grad
-            else:
-                index.grad_fn.backward(index_grad)
+        self._update_grad(tensor, tensor_grad)
+        self._update_grad(index, index_grad)
 
 
 def main():
-    # --- TEST COMPLETO ---
     x = Tensor(2.0, requires_grad=True)
     y = Tensor(3.0, requires_grad=True)
     z = Tensor(4.0, requires_grad=True)
 
-    # 1️⃣ Multiplicación
-    a = x * y  # a = x * y = 2 * 3 = 6
+    a = x * y
+    b = a + z
+    c = b ** a
 
-    # 2️⃣ Suma
-    b = a + z  # b = a + z = 6 + 4 = 10
-
-    # 3️⃣ Potencia
-    c = b ** a  # c = b^a = 10^6 = 1_000_000
-
-    # Retropropagación
     c.backward()
 
     print("x.grad:", x.grad)  # ≈ 8_707_755
