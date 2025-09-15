@@ -109,3 +109,17 @@ class Dot(Function):
 
         self._update_grad(tensor, tensor_grad)
         self._update_grad(other, other_grad)
+
+class Sum(Function):
+    def forward(self, tensor):
+        self.ctx = tensor
+
+        return self._result_tensor(tensor.data.sum(), tensor.requires_grad)
+
+    def backward(self, grad_output):
+        """
+        Retrieves the data in ctx and updates grads
+        """
+        tensor = self.ctx
+
+        self._update_grad(tensor, np.ones(tensor.shape()) * grad_output)
