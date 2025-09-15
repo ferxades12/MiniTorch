@@ -54,16 +54,38 @@ class Tensor:
 
         return result
 
-    def backward(self):
+    def backward(self, grad=None):
         """
         Initiates backward operation
+        Implicit gradient is only allowed for scalars, otherwise, a direction must be provided
         """
+        if self.numel() != 1 and grad is None:
+            raise RuntimeError('grad can be implicitly created only for scalars')
 
-        self.grad_fn.backward(np.ones(self.shape()))
-
+        grad = grad if grad is not None else 1
+        self.grad_fn.backward(grad)
 
     def shape(self):
         return self.data.shape
+
+    def sum(self):
+        op = Sum()
+
+        result = op.forward(self)
+
+        if result.requires_grad:
+            result.grad_fn = op
+
+        return result
+
+    def numel(self):
+        """
+        Returns the number of elements in the tensor
+        """
+        n = 1
+        for dim in self.shape():
+            n *= dim
+        return n
 
 
 def main():
