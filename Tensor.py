@@ -28,6 +28,8 @@ class Tensor:
         return self._apply_op(Add, other)
     def __pow__(self, index):
         return self._apply_op(Pow, index)
+    def dot(self, other):
+        return self._apply_op(Dot, other)
 
     def _apply_op(self, op, other, reverse = False):
         """
@@ -58,7 +60,7 @@ class Tensor:
         Initiates backward operation
         """
 
-        self.grad_fn.backward(1)
+        self.grad_fn.backward(np.ones(self.shape()))
 
 
     def shape(self):
@@ -163,22 +165,56 @@ class Pow(Function):
         self._update_grad(tensor, tensor_grad)
         self._update_grad(index, index_grad)
 
+class Dot(Function):
+    def forward(self, tensor, other):
+        """
+        Creates a Tensor result
+        Saves necessary data in ctx
+        """
+
+        result = Tensor(np.dot(tensor.data, other.data), requires_grad=tensor.requires_grad or other.requires_grad)
+        result.is_leaf = False
+
+        self.ctx = (tensor, other)
+
+        return result
+
+    def backward(self, grad_output):
+        """
+        Retrieves the data in ctx and updates grads
+
+        (A * X) d/dx =
+        (X * A) d/dx =
+        """
+
+        tensor, other = self.ctx
+
+        tensor_grad = np.dot(grad_output, other.data.T)
+        other_grad = np.dot(tensor.data.T, grad_output)
+
+        self._update_grad(tensor, tensor_grad)
+        self._update_grad(other, other_grad)
+
 
 def main():
-    x = Tensor(2.0, requires_grad=True)
-    y = Tensor(3.0, requires_grad=True)
-    z = Tensor(4.0, requires_grad=True)
+    # Tensores con gradiente
+    x = Tensor([[1, 2], [3, 4]], requires_grad=True)
+    y = Tensor([2, 3], requires_grad=True)
 
-    a = x * y
-    b = a + z
-    c = b ** a
+    # Producto punto
+    a = y.dot(x)  # vector · matriz → vector
+    # Multiplicación por un escalar
+    b = a * 2
+    # Elevar al cuadrado
+    c = b**2
 
+    # Backprop
     c.backward()
 
-    print("x.grad:", x.grad)  # ≈ 8_707_755
-    print("y.grad:", y.grad)  # ≈ 5_805_170
-    print("z.grad:", z.grad)  # = 600_000
-    print("c:", c.data)  # 1_000_000
+    # Resultados
+    print("x.grad:", x.grad)
+    print("y.grad:", y.grad)
+    print("c:", c.data)
 
 
 if __name__ == "__main__":
