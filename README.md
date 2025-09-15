@@ -16,18 +16,18 @@ Optimización con Gradient Descent, Adam, RMSProp.
 
 Ejemplos prácticos: regresión lineal, clasificación simple.
 
-📂 Estructura del Proyecto
-pytorch_from_scratch_numpy/
-│
-├── tensor.py           # Clase Tensor personalizada
-├── operations.py       # Operaciones básicas (suma, multiplicación, etc.)
-├── activations.py      # Funciones de activación
-├── losses.py           # Funciones de pérdida
-├── optimizers.py       # Optimización (SGD)
-├── examples/           # Ejemplos de uso
-│   └── linear_regression.py
-├── tests/    
-└── README.md
+📂 Estructura del Proyecto<br>
+MiniTorch/<br>
+│<br>
+├── tensor.py           # Clase Tensor personalizada  <br>
+├── operations.py       # Operaciones básicas (suma, multiplicación, etc.)  <br>
+├── activations.py      # Funciones de activación<br>
+├── losses.py           # Funciones de pérdida<br>
+├── optimizers.py       # Optimización (SGD)<br>
+├── examples/           # Ejemplos de uso<br>
+│   └── linear_regression.py<br>
+├── tests/    <br>
+└── README.md<br>
 
 
 📝 Ejemplo de Uso
