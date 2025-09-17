@@ -1,4 +1,4 @@
-import tensor as t
+import src.tensor as t
 import torch
 import pytest
 
