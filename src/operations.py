@@ -123,3 +123,17 @@ class Sum(Function):
         tensor = self.ctx
 
         self._update_grad(tensor, np.ones(tensor.shape()) * grad_output)
+
+class Traspose(Function):
+    def forward(self, tensor):
+        self.ctx = tensor
+
+        return self._result_tensor(tensor.data.T, tensor.requires_grad)
+
+    def backward(self, grad_output):
+        """
+        Retrieves the data in ctx and updates grads
+        """
+        tensor = self.ctx
+
+        self._update_grad(tensor, grad_output.T)

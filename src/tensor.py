@@ -1,4 +1,4 @@
-from src.functions import *
+from src.operations import *
 
 class Tensor:
     grad = None
@@ -20,17 +20,22 @@ class Tensor:
     def __str__(self):
         return str(self.data)
     def __mul__(self, other):
-        return self._apply_op(Mul, other)
+        return self._apply_binary_op(Mul, other)
     def __rmul__(self, other):
-        return self._apply_op(Mul, other, reverse = True)
+        return self._apply_binary_op(Mul, other, reverse = True)
     def __add__(self, other):
-        return self._apply_op(Add, other)
+        return self._apply_binary_op(Add, other)
     def __pow__(self, index):
-        return self._apply_op(Pow, index)
+        return self._apply_binary_op(Pow, index)
     def dot(self, other):
-        return self._apply_op(Dot, other)
+        return self._apply_binary_op(Dot, other)
+    def T(self):
+        return self._apply_unary_op(Traspose)
+    
+    def sum(self):
+        return self._apply_unary_op(Sum)
 
-    def _apply_op(self, op, other, reverse = False):
+    def _apply_binary_op(self, op, other, reverse = False):
         """
         Applies a binary operation between self and other
 
@@ -53,6 +58,23 @@ class Tensor:
             result.grad_fn = op
 
         return result
+    
+    def _apply_unary_op(self, op):
+        """
+        Applies a unary operation to self
+
+        Instantiates operation class and forwards the data
+        Updates grad_fn with that instance if required
+        """
+
+        op = op()
+
+        result = op.forward(self)
+
+        if self.requires_grad:
+            result.grad_fn = op
+
+        return result
 
     def backward(self, grad=None):
         """
@@ -67,16 +89,6 @@ class Tensor:
 
     def shape(self):
         return self.data.shape
-
-    def sum(self):
-        op = Sum()
-
-        result = op.forward(self)
-
-        if result.requires_grad:
-            result.grad_fn = op
-
-        return result
 
     def numel(self):
         """

@@ -7,7 +7,7 @@ def test_ops():
     b = t.Tensor([[2, 1, 1], [4, 2, 2], [1, 5, 6]], requires_grad=True)
 
     c = a.dot(b)
-    d = c * 3
+    d = c.T()
     e = d.dot(a)
 
     x = e.sum()
@@ -16,11 +16,14 @@ def test_ops():
     ta = torch.tensor([[1., 2, 3], [3, 2, 1], [3, 1, 2]], requires_grad=True)
     tb = torch.tensor([[2., 1, 1], [4, 2, 2], [1, 5, 6]], requires_grad=True)
     tc = torch.tensordot(ta, tb, dims = 1)
-    td = tc * 3
+    td = tc.T
 
     te = torch.tensordot(td, ta, dims = 1)
-    x = te.sum()
-    x.backward()
+    tx = te.sum()
+    tx.backward()
+
+    print(a.grad)
+    print(ta.grad)
 
     r, c =  ta.shape
     for i in range(r):
