@@ -27,6 +27,12 @@ class Tensor:
         return self._apply_binary_op(Add, other)
     def __pow__(self, index):
         return self._apply_binary_op(Pow, index)
+    def __rpow__(self, base):
+        return self._apply_binary_op(Pow, base, reverse=True)
+    def __truediv__(self, other):
+        return self._apply_binary_op(Div, other)
+    def __rtruediv__(self, other):
+        return self._apply_binary_op(Div, other, reverse=True)
     def dot(self, other):
         return self._apply_binary_op(Dot, other)
     def T(self):
@@ -35,8 +41,6 @@ class Tensor:
     def sum(self):
         return self._apply_unary_op(Sum)
     
-    def maximum(self, other):
-        return self._apply_binary_op(Maximum, other)
 
     def _apply_binary_op(self, op, other, reverse = False):
         """
@@ -103,10 +107,27 @@ class Tensor:
         return n
 
 def maximum(A, B):
+    """
+    returns the maximun bit-wise of A and B
+    """
     A = A if isinstance(A, Tensor) else Tensor(A)
 
-    return A.maximum(B)
+    return A._apply_binary_op(Maximum, B)
 
+def minimum(A, B):
+    """
+    returns the minimum bit-wise of A and B
+    """
+    A = A if isinstance(A, Tensor) else Tensor(A)
+
+    return A._apply_binary_op(Minimum, B)
+
+def sigmoid(tensor):
+    """
+    Applies the sigmoid function element-wise
+    """
+    tensor = tensor if isinstance(tensor, Tensor) else Tensor(tensor)
+    return tensor._apply_unary_op(Sigmoid)
 
 def main():
     # Tensores con gradiente

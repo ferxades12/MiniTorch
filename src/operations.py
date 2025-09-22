@@ -152,3 +152,61 @@ class Maximum(Function):
 
         self._update_grad(tensor, tensor_grad * grad_output)
         self._update_grad(other, other_grad * grad_output)
+
+class Minimum(Function):
+    def forward(self, tensor, other):
+        self.ctx = (tensor, other)
+
+        return self._result_tensor(np.minimum(tensor.data, other.data), tensor.requires_grad or other.requires_grad)
+
+    def backward(self, grad_output):
+        tensor, other = self.ctx
+
+        tensor_grad = tensor.data < other.data
+        other_grad = other.data < tensor.data
+
+        self._update_grad(tensor, tensor_grad * grad_output)
+        self._update_grad(other, other_grad * grad_output)
+
+class Div(Function):
+    def forward(self, tensor, other):
+        self.ctx = (tensor, other)
+
+        return self._result_tensor(tensor.data / other.data, tensor.requires_grad or other.requires_grad)
+
+    def backward(self, grad_output):
+        """
+        Retrieves the data in ctx and updates grads
+
+        x / a d/dx = 1/a
+        a / x d/dx = -a/x^2
+        """
+
+        tensor, other = self.ctx
+
+        tensor_grad = (1 / other.data) * grad_output
+        other_grad = (-tensor.data / (other.data**2)) * grad_output
+
+        self._update_grad(tensor, tensor_grad)
+        self._update_grad(other, other_grad)
+
+class Sigmoid(Function):
+    def forward(self, tensor):
+        sigmoid = 1 / (1 + np.exp(-1 * tensor.data))
+        self.ctx = (tensor, sigmoid)
+
+        return self._result_tensor(sigmoid, requires_grad=tensor.requires_grad)
+
+    def backward(self, grad_output):
+        """
+        Retrieves the data in ctx and updates grads
+
+        y = sigmoid(x)
+        dy/dx = y * (1 - y)
+        """
+
+        tensor, sigmoid = self.ctx
+
+        tensor_grad = sigmoid * (1 - sigmoid) * grad_output
+
+        self._update_grad(tensor, tensor_grad)
