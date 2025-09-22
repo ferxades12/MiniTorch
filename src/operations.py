@@ -56,13 +56,31 @@ class Add(Function):
         """
         Retrieves the data in ctx and updates grads
 
-        (a + x) d/dx = 1
+        (x + a) d/dx = 1
         """
 
         tensor, other = self.ctx
 
         self._update_grad(tensor, grad_output)
         self._update_grad(other, grad_output)
+
+class Sub(Function):
+    def forward(self, tensor, other):
+        self.ctx = (tensor, other)
+
+        return self._result_tensor(tensor.data - other.data, tensor.requires_grad or other.requires_grad)
+
+    def backward(self, grad_output):
+        """
+        Retrieves the data in ctx and updates grads
+
+        (x - a) d/dx = -1
+        """
+
+        tensor, other = self.ctx
+
+        self._update_grad(tensor, grad_output)
+        self._update_grad(other, -1 * grad_output)
 
 class Pow(Function):
     def forward(self, tensor, index):

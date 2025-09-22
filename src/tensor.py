@@ -33,11 +33,14 @@ class Tensor:
         return self._apply_binary_op(Div, other)
     def __rtruediv__(self, other):
         return self._apply_binary_op(Div, other, reverse=True)
+    def __sub__(self, other):
+        return self._apply_binary_op(Sub, other)
+    def __rsub__(self, other):
+        return self._apply_binary_op(Sub, other, reverse=True)
     def dot(self, other):
         return self._apply_binary_op(Dot, other)
     def T(self):
         return self._apply_unary_op(Traspose)
-    
     def sum(self):
         return self._apply_unary_op(Sum)
     
