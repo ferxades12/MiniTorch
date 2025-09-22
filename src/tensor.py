@@ -34,6 +34,9 @@ class Tensor:
     
     def sum(self):
         return self._apply_unary_op(Sum)
+    
+    def maximum(self, other):
+        return self._apply_binary_op(Maximum, other)
 
     def _apply_binary_op(self, op, other, reverse = False):
         """
@@ -98,6 +101,11 @@ class Tensor:
         for dim in self.shape():
             n *= dim
         return n
+
+def maximum(A, B):
+    A = A if isinstance(A, Tensor) else Tensor(A)
+
+    return A.maximum(B)
 
 
 def main():

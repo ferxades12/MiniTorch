@@ -137,3 +137,18 @@ class Traspose(Function):
         tensor = self.ctx
 
         self._update_grad(tensor, grad_output.T)
+
+class Maximum(Function):
+    def forward(self, tensor, other):
+        self.ctx = (tensor, other)
+
+        return self._result_tensor(np.maximum(tensor.data, other.data), tensor.requires_grad or other.requires_grad)
+
+    def backward(self, grad_output):
+        tensor, other = self.ctx
+
+        tensor_grad = tensor.data > other.data
+        other_grad = other.data > tensor.data
+
+        self._update_grad(tensor, tensor_grad * grad_output)
+        self._update_grad(other, other_grad * grad_output)
