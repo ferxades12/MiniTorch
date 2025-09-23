@@ -1,7 +1,7 @@
 import src as M
 import torch
 import pytest
-import src.activations as act
+from src.activations import *
 import numpy as np
 
 
@@ -128,10 +128,12 @@ def test_dot(a, b):
     np.random.uniform(-5, 5, (3, 3)), # aleatorio
 ])
 def test_relu(arr):
+    relu = ReLU()
+
     A = M.Tensor(arr, requires_grad=True)
     ta = torch.tensor(arr, dtype=torch.float32, requires_grad=True)
 
-    B = act.ReLU(A)
+    B = relu(A)
     tb = torch.nn.functional.relu(ta)
 
     B.sum().backward()
@@ -148,10 +150,12 @@ def test_relu(arr):
     np.random.uniform(-5, 5, (3, 3)),
 ])
 def test_sigmoid(arr):
+    sig = Sigmoid()
+
     A = M.Tensor(arr, requires_grad=True)
     ta = torch.tensor(arr, dtype=torch.float32, requires_grad=True)
 
-    B = act.sigmoid(A)
+    B = sig(A)
     tb = torch.sigmoid(ta)
 
     B.sum().backward()
@@ -168,10 +172,12 @@ def test_sigmoid(arr):
     np.random.uniform(-5, 5, (3, 3)),
 ])
 def test_tanh(arr):
+    tanh = Tanh()
+
     A = M.Tensor(arr, requires_grad=True)
     ta = torch.tensor(arr, dtype=torch.float32, requires_grad=True)
 
-    B = act.tanh(A)
+    B = tanh(A)
     tb = torch.tanh(ta)
 
     B.sum().backward()
@@ -179,7 +185,6 @@ def test_tanh(arr):
 
     assert np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
     assert np.allclose(B.data, tb.detach().numpy(), atol=1e-5)
-
 
 @pytest.mark.parametrize("arr", [
     [0, 1, 2, 3],                # valores crecientes
@@ -190,10 +195,12 @@ def test_tanh(arr):
     np.random.uniform(-5, 5, 5), # aleatorio
 ])
 def test_softmax_1d(arr):
+    soft = Softmax()
+
     A = M.Tensor(arr, requires_grad=True)
     ta = torch.tensor(arr, dtype=torch.float32, requires_grad=True)
 
-    B = act.softmax(A)
+    B = soft(A)
     tb = torch.nn.functional.softmax(ta, dim=0)
 
     B.sum().backward()

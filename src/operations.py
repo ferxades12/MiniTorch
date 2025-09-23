@@ -294,7 +294,7 @@ class Div(Function):
         self._update_grad(tensor, tensor_grad)
         self._update_grad(other, other_grad)
 
-class Sigmoid(Function):
+class SigmoidOp(Function):
     def forward(self, tensor):
         """Applies the sigmoid activation function element-wise.
 
@@ -323,7 +323,7 @@ class Sigmoid(Function):
 class Softmax1D(Function):
     def forward(self, tensor): 
         """Applies the softmax activation function to a 1D tensor.
-        
+
         Returns:
             Tensor: The resulting tensor.
         """ 
