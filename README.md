@@ -34,3 +34,23 @@ MiniTorch/
 
 
 📌 Como instalarlo
+
+Clonar el repositorio:
+```
+git clone <https://github.com/ferxades12/MiniTorch>
+cd <MiniTorch>
+```
+Crear un entorno virtual (opcional pero recomendado):
+
+```
+python -m venv venv
+# En Linux/macOS
+source venv/bin/activate
+# En Windows
+venv\Scripts\activate
+```
+
+Instalar las dependencias:
+```
+pip install -r requirements.txt
+```
