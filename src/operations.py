@@ -148,6 +148,11 @@ class Pow(Function):
 
 class Dot(Function):
     def forward(self, tensor, other):
+        """Performs a dot product between two tensors.
+
+        Returns:
+            Tensor: The resulting tensor.
+        """
         self.ctx = (tensor, other)
 
         return self._result_tensor(np.dot(tensor.data, other.data), tensor.requires_grad or other.requires_grad)
@@ -170,6 +175,12 @@ class Dot(Function):
 
 class Sum(Function):
     def forward(self, tensor):
+        """Sums all elements in a tensor.
+
+        Returns:
+            Tensor: The resulting tensor.
+        """
+
         self.ctx = tensor
 
         return self._result_tensor(tensor.data.sum(), tensor.requires_grad)
@@ -177,13 +188,20 @@ class Sum(Function):
     def backward(self, grad_output):
         """
         Retrieves the data in ctx and updates grads
+
+        (sum(x)) d/dx = np.ones(x.shape)
         """
         tensor = self.ctx
 
         self._update_grad(tensor, np.ones(tensor.shape()) * grad_output)
 
-class Traspose(Function):
+class Transpose(Function):
     def forward(self, tensor):
+        """Transposes a tensor.
+
+        Returns:
+            Tensor: The resulting tensor.
+        """
         self.ctx = tensor
 
         return self._result_tensor(tensor.data.T, tensor.requires_grad)
@@ -191,6 +209,8 @@ class Traspose(Function):
     def backward(self, grad_output):
         """
         Retrieves the data in ctx and updates grads
+
+        (x.T) d/dx = I
         """
         tensor = self.ctx
 
@@ -198,11 +218,22 @@ class Traspose(Function):
 
 class Maximum(Function):
     def forward(self, tensor, other):
+        """Returns the element-wise maximum of two tensors.
+
+        Returns:
+            Tensor: The resulting tensor.
+        """
         self.ctx = (tensor, other)
 
         return self._result_tensor(np.maximum(tensor.data, other.data), tensor.requires_grad or other.requires_grad)
 
     def backward(self, grad_output):
+        """
+        Retrieves the data in ctx and updates grads
+        (max(x, a)) d/dx = 1 if x > a else 0
+        (max(x, a)) d/da = 1 if a > x else 0
+        """
+
         tensor, other = self.ctx
 
         tensor_grad = tensor.data > other.data
@@ -213,11 +244,21 @@ class Maximum(Function):
 
 class Minimum(Function):
     def forward(self, tensor, other):
+        """Returns the element-wise minimum of two tensors.
+        Returns:
+            Tensor: The resulting tensor.
+        """
         self.ctx = (tensor, other)
 
         return self._result_tensor(np.minimum(tensor.data, other.data), tensor.requires_grad or other.requires_grad)
 
     def backward(self, grad_output):
+        """
+        Retrieves the data in ctx and updates grads
+
+        (min(x, a)) d/dx = 1 if x < a else 0
+        (min(x, a)) d/da = 1 if a < x else
+        """
         tensor, other = self.ctx
 
         tensor_grad = tensor.data < other.data
@@ -228,6 +269,11 @@ class Minimum(Function):
 
 class Div(Function):
     def forward(self, tensor, other):
+        """Divides two tensors element-wise.
+
+        Returns:
+            Tensor: The resulting tensor.
+        """
         self.ctx = (tensor, other)
 
         return self._result_tensor(tensor.data / other.data, tensor.requires_grad or other.requires_grad)
@@ -250,6 +296,11 @@ class Div(Function):
 
 class Sigmoid(Function):
     def forward(self, tensor):
+        """Applies the sigmoid activation function element-wise.
+
+        Returns:
+            Tensor: The resulting tensor.
+        """
         sigmoid = 1 / (1 + np.exp(-1 * tensor.data))
         self.ctx = (tensor, sigmoid)
 
@@ -270,7 +321,12 @@ class Sigmoid(Function):
         self._update_grad(tensor, tensor_grad)
 
 class Softmax1D(Function):
-    def forward(self, tensor):  
+    def forward(self, tensor): 
+        """Applies the softmax activation function to a 1D tensor.
+        
+        Returns:
+            Tensor: The resulting tensor.
+        """ 
         if tensor.numdims() != 1:
             raise ValueError("Softmax1D only accepts 1D tensors")
 

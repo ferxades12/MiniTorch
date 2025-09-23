@@ -42,7 +42,7 @@ class Tensor:
     def dot(self, other):
         return self._apply_binary_op(Dot, other)
     def T(self):
-        return self._apply_unary_op(Traspose)
+        return self._apply_unary_op(Transpose)
     def sum(self):
         return self._apply_unary_op(Sum)
     
