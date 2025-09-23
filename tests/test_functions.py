@@ -49,9 +49,9 @@ def test_pow(base, exp):
     C.sum().backward()
     tc.sum().backward()
 
-    assert_allclose(C.data, tc)
-    assert_allclose(A.grad, ta.grad)
-    assert_allclose(B.grad, tb.grad)
+    assert_allclose_2d(C.data, tc)
+    assert_allclose_2d(A.grad, ta.grad)
+    assert_allclose_2d(B.grad, tb.grad)
 
 @pytest.mark.parametrize("arr", [
     [[-1, 0], [1, -1]],           # negativos, ceros y positivos
@@ -70,8 +70,8 @@ def test_relu(arr):
     B.sum().backward()
     tb.sum().backward()
 
-    assert_allclose(A.grad, ta.grad)
-    assert_allclose(B.data, tb)
+    assert_allclose_2d(A.grad, ta.grad)
+    assert_allclose_2d(B.data, tb)
 
 @pytest.mark.parametrize("arr", [
     [[-1, 0], [1, -1]],
@@ -90,8 +90,8 @@ def test_sigmoid(arr):
     B.sum().backward()
     tb.sum().backward()
 
-    assert_allclose(A.grad, ta.grad)
-    assert_allclose(B.data, tb)
+    assert_allclose_2d(A.grad, ta.grad)
+    assert_allclose_2d(B.data, tb)
 
 @pytest.mark.parametrize("arr", [
     [[-1, 0], [1, -1]],
@@ -110,11 +110,40 @@ def test_tanh(arr):
     B.sum().backward()
     tb.sum().backward()
 
-    assert_allclose(A.grad, ta.grad)
-    assert_allclose(B.data, tb)
+    assert_allclose_2d(A.grad, ta.grad)
+    assert_allclose_2d(B.data, tb)
 
+@pytest.mark.parametrize("arr", [
+    [0, 1, 2, 3],                # valores crecientes
+    [-1, 0, 1],                  # negativos y positivos
+    [1000, 1001, 1002],          # valores grandes (test de estabilidad numérica)
+    [-1000, 0, 1000],            # extremos
+    [0, 0, 0],                   # todos iguales
+    np.random.uniform(-5, 5, 5), # aleatorio
+])
+def test_softmax_1d(arr):
+    A = M.Tensor(arr, requires_grad=True)
+    ta = torch.tensor(arr, dtype=torch.float32, requires_grad=True)
 
-def assert_allclose(A, B):
+    B = act.softmax(A)
+    tb = torch.nn.functional.softmax(ta, dim=0)
+
+    B.sum().backward()
+    tb.sum().backward()
+
+    assert_allclose_1d(A.grad, ta.grad)
+    assert_allclose_1d(B.data, tb)
+
+def assert_allclose_2d(A, B):
+    r, c =  A.shape
+    for i in range(r):
+        for j in range(c):
+            assert abs((A[i, j] / B[i, j]) - 1) < 1e-3 or abs(A[i, j] - B[i, j]) < 1e-3
+
+def assert_allclose_1d(A, B):
+    A = A.reshape(-1, 1)
+    B = B.reshape(-1, 1)
+
     r, c =  A.shape
     for i in range(r):
         for j in range(c):

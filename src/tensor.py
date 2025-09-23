@@ -108,6 +108,15 @@ class Tensor:
         for dim in self.shape():
             n *= dim
         return n
+    
+    def numdims(self):
+        """
+        Returns the number of dimensions of the tensor
+        """
+        return len(self.shape())
+    
+    def reshape(self, dims):
+        return self.data.reshape(dims)
 
 def maximum(A, B):
     """
@@ -131,6 +140,17 @@ def sigmoid(tensor):
     """
     tensor = tensor if isinstance(tensor, Tensor) else Tensor(tensor)
     return tensor._apply_unary_op(Sigmoid)
+
+def softmax(tensor):
+    """
+    Applies the softmax function to a tensor
+    """
+    tensor = tensor if isinstance(tensor, Tensor) else Tensor(tensor)
+    
+    if tensor.numdims() == 1:
+        return tensor._apply_unary_op(Softmax1D)
+    else:
+        raise ValueError("Softmax not implemented for more than 1 dim")
 
 def main():
     # Tensores con gradiente

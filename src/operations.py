@@ -213,7 +213,7 @@ class Sigmoid(Function):
         sigmoid = 1 / (1 + np.exp(-1 * tensor.data))
         self.ctx = (tensor, sigmoid)
 
-        return self._result_tensor(sigmoid, requires_grad=tensor.requires_grad)
+        return self._result_tensor(sigmoid, tensor.requires_grad)
 
     def backward(self, grad_output):
         """
@@ -228,3 +228,34 @@ class Sigmoid(Function):
         tensor_grad = sigmoid * (1 - sigmoid) * grad_output
 
         self._update_grad(tensor, tensor_grad)
+
+class Softmax1D(Function):
+    def forward(self, tensor):  
+        if tensor.numdims() != 1:
+            raise ValueError("Softmax1D only accepts 1D tensors")
+
+        # Normalization needs to be done to avoid overflow
+        t_stable = tensor.data - np.max(tensor.data)
+
+        exps = np.exp(t_stable)
+        softmax = exps / np.sum(exps)
+
+        self.ctx = (tensor, softmax)
+
+        return self._result_tensor(softmax, tensor.requires_grad)
+
+    def backward(self, grad_output):
+        """
+        Retrieves the data in ctx and updates grads
+
+        y = softmax(x)
+        dy/dx = diag(y) - y y^T
+        """
+
+        tensor, softmax = self.ctx
+
+        s = softmax.reshape(-1, 1) # To ensure the dims
+
+        tensor_grad = np.diagflat(s) - np.dot(s, s.T)
+
+        self._update_grad(tensor, np.dot(tensor_grad, grad_output))

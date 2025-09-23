@@ -6,7 +6,7 @@ Implementación de tensores y operaciones básicas (suma, multiplicación, trans
 
 Autograd: cálculo manual del gradiente y backward propagation ✅
 
-Funciones de activación: ReLU, Sigmoid, Tanh.
+Funciones de activación: ReLU, Sigmoid, Tanh, Softmax. ✅
 
 Funciones de pérdida: MSE, Cross-Entropy.
 
