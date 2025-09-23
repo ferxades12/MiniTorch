@@ -6,9 +6,11 @@ class Tensor:
     is_leaf = True
 
     def __init__(self, data, requires_grad=False):
-        """
-        Creates a numpy array with the data given
-        Initializes grad variable if required with the shape of the data
+        """Creates a new tensor (numpy array wrapper)
+
+        Args:
+            data (list, numpy array, etc): data to be stored in the tensor
+            requires_grad (bool, optional): if True, the tensor will track operations for autograd. Defaults to False.
         """
 
         self.data = np.array(data)
@@ -134,46 +136,3 @@ def minimum(A, B):
 
     return A._apply_binary_op(Minimum, B)
 
-def sigmoid(tensor):
-    """
-    Applies the sigmoid function element-wise
-    """
-    tensor = tensor if isinstance(tensor, Tensor) else Tensor(tensor)
-    return tensor._apply_unary_op(Sigmoid)
-
-def softmax(tensor):
-    """
-    Applies the softmax function to a tensor
-    """
-    tensor = tensor if isinstance(tensor, Tensor) else Tensor(tensor)
-    
-    if tensor.numdims() == 1:
-        return tensor._apply_unary_op(Softmax1D)
-    else:
-        raise ValueError("Softmax not implemented for more than 1 dim")
-
-def main():
-    # Tensores con gradiente
-    x = Tensor([[1, 2], [3, 4]], requires_grad=True)
-    y = Tensor([2, 3], requires_grad=True)
-
-    # Producto punto
-    a = y.dot(x)  # vector · matriz → vector
-    # Multiplicación por un escalar
-    b = a * 2
-    # Elevar al cuadrado
-    c = b**2
-
-    d = c.sum()
-    print(c)
-    # Backprop
-    d.backward()
-
-    # Resultados
-    print("x.grad:", x.grad)
-    print("y.grad:", y.grad)
-    print("c:", c.data)
-
-
-if __name__ == "__main__":
-    main()

@@ -2,22 +2,40 @@ import numpy as np
 
 
 class Function:
+    """Base class for all operations.
+    """
     ctx = None
 
     def _update_grad(self, tensor, grad):
+        """Updates the grad of a tensor if necessary
+
+        Checks if the tensor is a leaf:
+        - If it is, the grad needs to be accumulated in the node
+        - If not,the grad needs to propagated to the node's father
+
+        Args:
+            tensor (Tensor): The input tensor to update the grad for.
+            grad (np.ndarray): The gradient to accumulate.
         """
-        If requires_grad, checks is_leaf
-         - If it is True the grad needs to be accumulated in the node
-         - If it is False the grad needs to propagated to the node's father
-        """
+
         if tensor.requires_grad:
             if tensor.is_leaf:
-                tensor.grad += grad
+                tensor.grad = np.add(tensor.grad, grad) if tensor.grad is not None else grad
             else:
                 tensor.grad_fn.backward(grad)
+
+
     def _result_tensor(self, value, requires_grad):
-        """
-        Creates a Tensor with the values provided
+        """Creates a Tensor with the values provided
+        This function is called in the forward method of each operation, 
+        so the resulting tensor is not a leaf
+
+        Args:
+            value (np.ndarray): The data for the resulting tensor.
+            requires_grad (bool): Whether the resulting tensor requires gradients.
+
+        Returns:
+            Tensor: The resulting tensor.
         """
 
         from src.tensor import Tensor
@@ -30,6 +48,11 @@ class Function:
 
 class Mul(Function):
     def forward(self, tensor, other):
+        """Multiplies two tensors element-wise.
+
+        Returns:
+            Tensor: The resulting tensor.
+        """
         self.ctx = (tensor, other)
 
         return self._result_tensor(tensor.data * other.data, tensor.requires_grad or other.requires_grad)
@@ -48,6 +71,11 @@ class Mul(Function):
 
 class Add(Function):
     def forward(self, tensor, other):
+        """Adds two tensors.
+
+        Returns:
+            Tensor: The resulting tensor.
+        """
         self.ctx = (tensor, other)
 
         return self._result_tensor(tensor.data + other.data, tensor.requires_grad or other.requires_grad)
@@ -57,6 +85,7 @@ class Add(Function):
         Retrieves the data in ctx and updates grads
 
         (x + a) d/dx = 1
+        (x + a) d/da = 1
         """
 
         tensor, other = self.ctx
@@ -66,6 +95,11 @@ class Add(Function):
 
 class Sub(Function):
     def forward(self, tensor, other):
+        """"Subtracts two tensors.
+
+        Returns:
+            Tensor: The resulting tensor.
+        """
         self.ctx = (tensor, other)
 
         return self._result_tensor(tensor.data - other.data, tensor.requires_grad or other.requires_grad)
@@ -84,6 +118,12 @@ class Sub(Function):
 
 class Pow(Function):
     def forward(self, tensor, index):
+        """Raises a tensor to the power of index element-wise.
+
+        Returns:
+            Tensor: The resulting tensor.
+        """
+
         result = self._result_tensor(np.pow(tensor.data, index.data), tensor.requires_grad or index.requires_grad)
 
         self.ctx = (tensor, index, result.data)
