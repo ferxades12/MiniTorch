@@ -1,4 +1,3 @@
-import numpy as np
 import src as M
 
 def ReLU(tensor):
