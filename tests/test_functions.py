@@ -79,6 +79,48 @@ def test_mul(a, b):
         assert np.allclose(B.grad, tb.grad.numpy(), atol=1e-5)
 
 @pytest.mark.parametrize("arr", [
+    [[1, 2, 3], [4, 5, 6]],                  # matriz 2x3
+    [[1, 2], [3, 4], [5, 6]],                # matriz 3x2
+    [[1, 2, 3, 4]],                          # matriz 1x4
+    np.random.uniform(-5, 5, (4, 2)),        # matriz aleatoria 4x2
+    [[7]],                                   # matriz 1x1
+])
+def test_transpose(arr):
+    A = M.Tensor(arr, requires_grad=True)
+    ta = torch.tensor(arr, dtype=torch.float32, requires_grad=True)
+
+    B = A.T()
+    tb = ta.t()
+
+    B.sum().backward()
+    tb.sum().backward()
+
+    assert np.allclose(B.data, tb.detach().numpy(), atol=1e-5)
+    assert np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
+
+@pytest.mark.parametrize("a, b", [
+    ([1, 2, 3], [4, 5, 6]),                      # vectores 1D
+    ([[1, 2], [3, 4]], [[5, 6], [7, 8]]),        # matrices 2D
+    ([[1, 2, 3]], [[4], [5], [6]]),              # fila por columna
+    (np.random.uniform(-5, 5, (2, 3)), np.random.uniform(-2, 2, (3, 4))), # aleatorio compatible
+])
+def test_dot(a, b):
+    A = M.Tensor(a, requires_grad=True)
+    B = M.Tensor(b, requires_grad=True)
+
+    C = A.dot(B)
+    ta = torch.tensor(a, dtype=torch.float32, requires_grad=True)
+    tb = torch.tensor(b, dtype=torch.float32, requires_grad=True)
+    tc = ta @ tb
+
+    C.sum().backward()
+    tc.sum().backward()
+
+    assert np.allclose(C.data, tc.detach().numpy(), atol=1e-5)
+    assert np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
+    assert np.allclose(B.grad, tb.grad.numpy(), atol=1e-5)
+
+@pytest.mark.parametrize("arr", [
     [[-1, 0], [1, -1]],           # negativos, ceros y positivos
     [[0, 0, 0]],                  # solo ceros
     [[-1000, 0, 1000]],           # extremos
@@ -138,27 +180,6 @@ def test_tanh(arr):
     assert np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
     assert np.allclose(B.data, tb.detach().numpy(), atol=1e-5)
 
-@pytest.mark.parametrize("a, b", [
-    ([1, 2, 3], [4, 5, 6]),                      # vectores 1D
-    ([[1, 2], [3, 4]], [[5, 6], [7, 8]]),        # matrices 2D
-    ([[1, 2, 3]], [[4], [5], [6]]),              # fila por columna
-    (np.random.uniform(-5, 5, (2, 3)), np.random.uniform(-2, 2, (3, 4))), # aleatorio compatible
-])
-def test_dot(a, b):
-    A = M.Tensor(a, requires_grad=True)
-    B = M.Tensor(b, requires_grad=True)
-
-    C = A.dot(B)
-    ta = torch.tensor(a, dtype=torch.float32, requires_grad=True)
-    tb = torch.tensor(b, dtype=torch.float32, requires_grad=True)
-    tc = ta @ tb
-
-    C.sum().backward()
-    tc.sum().backward()
-
-    assert np.allclose(C.data, tc.detach().numpy(), atol=1e-5)
-    assert np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
-    assert np.allclose(B.grad, tb.grad.numpy(), atol=1e-5)
 
 @pytest.mark.parametrize("arr", [
     [0, 1, 2, 3],                # valores crecientes
