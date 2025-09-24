@@ -5,13 +5,7 @@ Standard activation functions for MiniTorch.
 import src as M
 from src.tensor import Tensor
 from src.operations import SigmoidOp, Softmax1D
-
-class Function:
-    def __call__(self, tensor):
-        return self.forward(tensor)
-    
-    def forward(self):
-        raise NotImplementedError
+from src.base import Function
 
 
 class ReLU(Function):

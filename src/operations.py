@@ -1,7 +1,8 @@
 import numpy as np
+from src.base import Function
 
 
-class Function:
+class Function(Function):
     """Base class for all operations.
     """
     ctx = None
