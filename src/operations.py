@@ -176,7 +176,7 @@ class Dot(Function):
         self._update_grad(other, other_grad)
 
 class Sum(Function):
-    def forward(self, tensor):
+    def forward(self, tensor, axis=None):
         """Sums all elements in a tensor.
 
         Returns:
@@ -185,7 +185,7 @@ class Sum(Function):
 
         self.ctx = tensor
 
-        return self._result_tensor(tensor.data.sum(), tensor.requires_grad)
+        return self._result_tensor(np.sum(tensor.data, axis=axis), tensor.requires_grad)
 
     def backward(self, grad_output):
         """
@@ -322,38 +322,43 @@ class SigmoidOp(Function):
 
         self._update_grad(tensor, tensor_grad)
 
-class Softmax1D(Function):
+class SoftmaxOp(Function):
     def forward(self, tensor): 
-        """Applies the softmax activation function to a 1D tensor.
+        """Applies the softmax activation function to a tensor.
 
         Returns:
             Tensor: The resulting tensor.
         """ 
-        if tensor.numdims() != 1:
-            raise ValueError("Softmax1D only accepts 1D tensors")
+        axis = None if tensor.numdims() == 1 else 1
 
-        # Normalization needs to be done to avoid overflow
-        t_stable = tensor.data - np.max(tensor.data)
+        t_stable = tensor.data - np.max(tensor.data, axis=axis, keepdims=True) # Normalize to avoid overflow
 
         exps = np.exp(t_stable)
-        softmax = exps / np.sum(exps)
-
+        softmax = exps / np.sum(exps, axis=axis, keepdims=True)
+        
         self.ctx = (tensor, softmax)
 
         return self._result_tensor(softmax, tensor.requires_grad)
 
+
     def backward(self, grad_output):
         """
-        Retrieves the data in ctx and updates grads
+        Computes the gradient of the softmax function.
 
-        y = softmax(x)
-        dy/dx = diag(y) - y y^T
+        s = softmax(x)
+        dL/dx = (diag(s) - s @ s.T) * dL/ds
         """
+        tensor, s = self.ctx
 
-        tensor, softmax = self.ctx
+        if tensor.numdims() == 1:
+            # Case 1D: Calculates the gradient directly
+            s = s.reshape(-1, 1)  
+            tensor_grad = np.dot(np.diagflat(s) - np.dot(s, s.T), grad_output)
+        else:
+            # Otherwise: Calculates the gradient row by row
+            tensor_grad = np.zeros_like(tensor.data)
+            for i in range(len(tensor.data)):
+                si = s[i].reshape(-1, 1)  # Convierte cada fila en columna
+                tensor_grad[i] = np.dot(np.diagflat(si) - np.dot(si, si.T), grad_output[i])
 
-        s = softmax.reshape(-1, 1) # To ensure the dims
-
-        tensor_grad = np.diagflat(s) - np.dot(s, s.T)
-
-        self._update_grad(tensor, np.dot(tensor_grad, grad_output))
+        self._update_grad(tensor, tensor_grad)
