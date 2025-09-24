@@ -141,8 +141,9 @@ class Pow(Function):
 
         tensor, index, result = self.ctx
 
-        tensor_grad = index.data * (np.pow(tensor.data, (index.data - 1))) * grad_output
-        index_grad = result * np.log(tensor.data) * grad_output
+        with np.errstate(divide='ignore', invalid='ignore'): # Avoid numpy warnings with extreme values
+            tensor_grad = index.data * (np.pow(tensor.data, (index.data - 1))) * grad_output
+            index_grad = result * np.log(tensor.data) * grad_output
 
         self._update_grad(tensor, tensor_grad)
         self._update_grad(index, index_grad)

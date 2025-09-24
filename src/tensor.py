@@ -45,7 +45,8 @@ class Tensor:
         return self._apply_unary_op(Transpose)
     def sum(self):
         return self._apply_unary_op(Sum)
-    
+    def mean(self):
+        return self.sum() / self.numel()
 
     def _apply_binary_op(self, op, other, reverse = False):
         """
