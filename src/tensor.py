@@ -20,7 +20,7 @@ class Tensor:
             self.grad = np.zeros(self.data.shape)
 
     def __str__(self):
-        return str(self.data)
+        return f"Tensor({self.data})"
     def __mul__(self, other):
         return self._apply_binary_op(Mul, other)
     def __rmul__(self, other):
@@ -119,7 +119,12 @@ class Tensor:
         return len(self.shape())
     
     def reshape(self, dims):
-        return self.data.reshape(dims)
+        reshaped = Tensor(self.data.reshape(dims), self.requires_grad)
+
+        if self.requires_grad:
+            reshaped.grad = self.grad.reshape(dims) if self.grad is not None else None
+        
+        return reshaped
 
 def maximum(A, B):
     """
