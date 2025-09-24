@@ -15,3 +15,7 @@ class MSE(Function):
         target = target if isinstance(target, Tensor) else Tensor(target)
 
         return ((prediction - target) ** 2).mean()
+
+class CrossEntropy(Function):
+    def forward(self, prediction, target):
+        target = target if isinstance(target, Tensor) else Tensor(target)

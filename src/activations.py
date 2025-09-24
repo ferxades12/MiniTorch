@@ -4,7 +4,7 @@ Standard activation functions for MiniTorch.
 
 import src as M
 from src.tensor import Tensor
-from src.operations import SigmoidOp, Softmax1D
+from src.operations import SigmoidOp, SoftmaxOp
 from src.base import Function
 
 
@@ -62,7 +62,4 @@ class Softmax(Function):
         """
         tensor = tensor if isinstance(tensor, Tensor) else Tensor(tensor)
         
-        if tensor.numdims() == 1:
-            return tensor._apply_unary_op(Softmax1D)
-        else:
-            raise ValueError("Softmax not implemented for more than 1 dim")
+        return tensor._apply_unary_op(SoftmaxOp)
