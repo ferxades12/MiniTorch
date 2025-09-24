@@ -62,9 +62,9 @@ class Tensor:
         op = op()
 
         if reverse:
-            result = op.forward(other, self)
+            result = op(other, self)
         else:
-            result = op.forward(self, other)
+            result = op(self, other)
 
         if self.requires_grad:
             result.grad_fn = op
@@ -81,7 +81,7 @@ class Tensor:
 
         op = op()
 
-        result = op.forward(self)
+        result = op(self)
 
         if self.requires_grad:
             result.grad_fn = op
