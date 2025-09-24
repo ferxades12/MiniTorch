@@ -43,8 +43,9 @@ class Tensor:
         return self._apply_binary_op(Dot, other)
     def T(self):
         return self._apply_unary_op(Transpose)
-    def sum(self):
-        return self._apply_unary_op(Sum)
+    def sum(self, axis=None):
+        return self._apply_unary_op(Sum, axis)
+    
     def mean(self):
         return self.sum() / self.numel()
 
@@ -72,7 +73,7 @@ class Tensor:
 
         return result
     
-    def _apply_unary_op(self, op):
+    def _apply_unary_op(self, op, *args):
         """
         Applies a unary operation to self
 
@@ -82,7 +83,7 @@ class Tensor:
 
         op = op()
 
-        result = op(self)
+        result = op(self, *args)
 
         if self.requires_grad:
             result.grad_fn = op
