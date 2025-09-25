@@ -211,6 +211,35 @@ def test_softmax_1d(arr):
     assert np.allclose(B.data, tb.detach().numpy(), atol=1e-5)
 
 
+@pytest.mark.parametrize("arr", [
+    [[1, 2, 3], [4, 5, 6]],  # Matriz 2x3
+    [[1, 2], [3, 4], [5, 6]],  # Matriz 3x2
+    [[1, 2, 3, 4]],  # Matriz 1x4
+    np.random.uniform(-5, 5, (4, 2)),  # Matriz aleatoria 4x2
+    [[7]],  # Matriz 1x1
+])
+def test_softmax_no_dim(arr):
+    soft = Softmax()
+
+    A = M.Tensor(arr, requires_grad=True)
+    ta = torch.tensor(arr, dtype=torch.float32, requires_grad=True)
+
+    # Aplana el tensor para aplicar softmax a todos los elementos
+    A_flat = A.reshape((-1,))
+    ta_flat = ta.view(-1)
+
+    # Aplica softmax en MiniTorch y PyTorch
+    B = soft(A_flat)
+    tb = torch.nn.functional.softmax(ta_flat, dim=0)
+
+    # Calcula el backward
+    B.sum().backward()
+    tb.sum().backward()
+
+    # Verifica que los resultados sean iguales
+    assert np.allclose(B.data, tb.detach().numpy(), atol=1e-5)
+    assert np.allclose(A.grad, ta.grad, atol=1e-5)
+
 if __name__ == "__main__":
     pytest.main([__file__])
 
