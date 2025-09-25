@@ -240,6 +240,28 @@ def test_softmax_no_dim(arr):
     assert np.allclose(B.data, tb.detach().numpy(), atol=1e-5)
     assert np.allclose(A.grad, ta.grad, atol=1e-5)
 
+@pytest.mark.parametrize("arr", [
+    [1, 2, 3],                  # Valores positivos simples
+    [0.1, 1, 10],               # Valores pequeños y grandes
+    [1e-7, 1, 1e7],             # Valores extremos
+    np.random.uniform(0.1, 5, 10),  # Valores aleatorios positivos
+])
+def test_log(arr):
+    A = M.Tensor(arr, requires_grad=True)
+    ta = torch.tensor(arr, dtype=torch.float32, requires_grad=True)
+
+    # Aplica log en MiniTorch y PyTorch
+    B = A.log()
+    tb = torch.log(ta)
+
+    # Calcula el backward
+    B.sum().backward()
+    tb.sum().backward()
+
+    # Verifica que los resultados sean iguales
+    assert np.allclose(B.data, tb.detach().numpy(), atol=1e-5)
+    assert np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
+
 if __name__ == "__main__":
     pytest.main([__file__])
 

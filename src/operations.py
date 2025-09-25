@@ -296,6 +296,26 @@ class Div(Function):
         self._update_grad(tensor, tensor_grad)
         self._update_grad(other, other_grad)
 
+class Log(Function):
+    def forward(self, tensor):
+
+        self.ctx = tensor
+
+        return self._result_tensor(np.log(tensor.data), tensor.requires_grad)
+
+    def backward(self, grad_output):
+        """
+        Retrieves the data in ctx and updates grads
+
+        log x d/dx = 1/x
+        """
+
+        tensor = self.ctx
+
+        tensor_grad = (1 / tensor.data) * grad_output
+
+        self._update_grad(tensor, tensor_grad)
+
 class SigmoidOp(Function):
     def forward(self, tensor):
         """Applies the sigmoid activation function element-wise.
