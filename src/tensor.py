@@ -2,7 +2,7 @@ from src.operations import *
 
 class Tensor:
     grad = None
-    grad_fn = None
+    grad_fn : Function
     is_leaf = True
 
     def __init__(self, data, requires_grad=False):
@@ -21,6 +21,12 @@ class Tensor:
 
     def __str__(self):
         return f"Tensor({self.data})"
+    def __rep__(self):
+        return f"Tensor({self.data})"
+    def __getitem__(self, index):
+        return self.data[index]
+    def __setitem__(self, index, item):
+        self.data[index] = item
     def __mul__(self, other):
         return self._apply_binary_op(Mul, other)
     def __rmul__(self, other):
@@ -131,7 +137,7 @@ class Tensor:
     def one_hot(self, length):
         if self.numdims() != 1:
             raise ValueError("one_hot es solo para vectores")
-        tensor = self.reshape(-1, 1)
+        tensor = self.reshape((-1, 1))
 
         one_hot = np.zeros((tensor.shape()[0], length))
         one_hot[np.arange(len(self.data)), tensor.data] = 1
