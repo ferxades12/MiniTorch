@@ -127,6 +127,16 @@ class Tensor:
             reshaped.grad = self.grad.reshape(dims) if self.grad is not None else None
         
         return reshaped
+    
+    def one_hot(self, length):
+        if self.numdims() != 1:
+            raise ValueError("one_hot es solo para vectores")
+        tensor = self.reshape(-1, 1)
+
+        one_hot = np.zeros((tensor.shape()[0], length))
+        one_hot[np.arange(len(self.data)), tensor.data] = 1
+
+        return one_hot
 
 def maximum(A, B):
     """

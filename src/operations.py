@@ -382,3 +382,53 @@ class SoftmaxOp(Function):
                 tensor_grad[i] = np.dot(np.diagflat(si) - np.dot(si, si.T), grad_output[i])
 
         self._update_grad(tensor, tensor_grad)
+
+
+class CrossEntropyOp(Function):
+    def forward(self, prediction, target):
+        """
+        Calculates the Cross-Entropy loss between prediction and target tensors.
+
+        If target is a vector Ex. [2, 1, 0]
+            CE = - Σ log(Softmax(prediction)[i, target[i]])
+            This selects the correct class based on the index in target for each sample
+        
+        If target is a one-hot tensor Ex. [[0, 0, 1], [0, 1, 0], [1, 0, 0]]
+            CE = - Σ (target * log(Softmax(prediction)))
+            The bit-wise multiplication implicitly selects the correct class for each sample
+        
+        Args:
+            prediction (Tensor): The predicted logits tensor.
+            target (Tensor or list): The ground truth target tensor (one-hot or class indices).
+
+        Returns:
+            Tensor: The resulting scalar tensor after calculating the Cross-Entropy loss.
+        """
+        
+        s = SoftmaxOp()(prediction)
+
+        if target.shape() == s.shape():
+            # Target is one-hot
+            self.ctx = (prediction, s, target, True)
+
+            return -1 * (target * s.log()).sum(axis=1)
+            
+
+        else:
+            # Target is a vector
+            self.ctx = (prediction, s, target, False)
+
+            # np.arange(len(target.data)), target.data.astype(int)] = [i, target[i]] with i = 1,...,len(target.data)
+            return -1 * s[np.arange(len(target.data)), target.data.astype(int)]
+    
+    def backward(self, grad_output):
+        """_summary_
+
+        - Σ (target * log(Softmax(x)))   d/dx               = Softmax(x) - target
+        - Σ log(Softmax(prediction)[i, target[i]])   d/dx   = Softmax(x) - 1 if i = target[i] else 0
+        """
+        prediction, s, target, is_one_hot = self.ctx
+
+        prediction_grad = s - (target if is_one_hot else target.one_hot(s.shape()[0])) # No se si es 0 o 1
+        
+        self._update_grad(prediction, prediction_grad * grad_output)
