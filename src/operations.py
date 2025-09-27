@@ -2,7 +2,7 @@ import numpy as np
 from src.base import Function
 
 
-class Function(Function):
+class OpFunction(Function):
     """Base class for all operations.
     """
     ctx = None
@@ -21,7 +21,7 @@ class Function(Function):
 
         if tensor.requires_grad:
             if tensor.is_leaf:
-                tensor.grad = np.add(tensor.grad, grad) if tensor.grad is not None else grad
+                tensor.grad = tensor.grad + grad if tensor.grad is not None else grad
             else:
                 tensor.grad_fn.backward(grad)
 
@@ -41,13 +41,16 @@ class Function(Function):
 
         from src.tensor import Tensor
 
+        if isinstance(value, Tensor):
+            raise ValueError("value no deberia ser un Tensor")
+    
         result = Tensor(value, requires_grad=requires_grad)
         result.is_leaf = False
 
         return result
 
 
-class Mul(Function):
+class Mul(OpFunction):
     def forward(self, tensor, other):
         """Multiplies two tensors element-wise.
 
@@ -70,7 +73,7 @@ class Mul(Function):
         self._update_grad(tensor, other.data * grad_output)
         self._update_grad(other, tensor.data * grad_output)
 
-class Add(Function):
+class Add(OpFunction):
     def forward(self, tensor, other):
         """Adds two tensors.
 
@@ -94,7 +97,7 @@ class Add(Function):
         self._update_grad(tensor, grad_output)
         self._update_grad(other, grad_output)
 
-class Sub(Function):
+class Sub(OpFunction):
     def forward(self, tensor, other):
         """"Subtracts two tensors.
 
@@ -117,7 +120,7 @@ class Sub(Function):
         self._update_grad(tensor, grad_output)
         self._update_grad(other, -1 * grad_output)
 
-class Pow(Function):
+class Pow(OpFunction):
     def forward(self, tensor, index):
         """Raises a tensor to the power of index element-wise.
 
@@ -148,7 +151,7 @@ class Pow(Function):
         self._update_grad(tensor, tensor_grad)
         self._update_grad(index, index_grad)
 
-class Dot(Function):
+class Dot(OpFunction):
     def forward(self, tensor, other):
         """Performs a dot product between two tensors.
 
@@ -175,7 +178,7 @@ class Dot(Function):
         self._update_grad(tensor, tensor_grad)
         self._update_grad(other, other_grad)
 
-class Sum(Function):
+class Sum(OpFunction):
     def forward(self, tensor, axis=None):
         """Sums all elements in a tensor.
 
@@ -197,7 +200,7 @@ class Sum(Function):
 
         self._update_grad(tensor, np.ones(tensor.shape()) * grad_output)
 
-class Transpose(Function):
+class Transpose(OpFunction):
     def forward(self, tensor):
         """Transposes a tensor.
 
@@ -218,7 +221,7 @@ class Transpose(Function):
 
         self._update_grad(tensor, grad_output.T)
 
-class Maximum(Function):
+class Maximum(OpFunction):
     def forward(self, tensor, other):
         """Returns the element-wise maximum of two tensors.
 
@@ -244,7 +247,7 @@ class Maximum(Function):
         self._update_grad(tensor, tensor_grad * grad_output)
         self._update_grad(other, other_grad * grad_output)
 
-class Minimum(Function):
+class Minimum(OpFunction):
     def forward(self, tensor, other):
         """Returns the element-wise minimum of two tensors.
         Returns:
@@ -269,7 +272,7 @@ class Minimum(Function):
         self._update_grad(tensor, tensor_grad * grad_output)
         self._update_grad(other, other_grad * grad_output)
 
-class Div(Function):
+class Div(OpFunction):
     def forward(self, tensor, other):
         """Divides two tensors element-wise.
 
@@ -296,7 +299,7 @@ class Div(Function):
         self._update_grad(tensor, tensor_grad)
         self._update_grad(other, other_grad)
 
-class Log(Function):
+class Log(OpFunction):
     def forward(self, tensor):
 
         self.ctx = tensor
@@ -316,7 +319,7 @@ class Log(Function):
 
         self._update_grad(tensor, tensor_grad)
 
-class SigmoidOp(Function):
+class SigmoidOp(OpFunction):
     def forward(self, tensor):
         """Applies the sigmoid activation function element-wise.
 
@@ -342,7 +345,7 @@ class SigmoidOp(Function):
 
         self._update_grad(tensor, tensor_grad)
 
-class SoftmaxOp(Function):
+class SoftmaxOp(OpFunction):
     def forward(self, tensor): 
         """Applies the softmax activation function to a tensor.
 
@@ -384,7 +387,7 @@ class SoftmaxOp(Function):
         self._update_grad(tensor, tensor_grad)
 
 
-class CrossEntropyOp(Function):
+class CrossEntropyOp(OpFunction):
     def forward(self, prediction, target):
         """
         Calculates the Cross-Entropy loss between prediction and target tensors.
@@ -411,7 +414,7 @@ class CrossEntropyOp(Function):
             # Target is one-hot
             self.ctx = (prediction, s, target, True)
 
-            return -1 * (target * s.log()).sum(axis=1)
+            result = -1 * (target * s.log()).sum(axis=1)
             
 
         else:
@@ -419,7 +422,9 @@ class CrossEntropyOp(Function):
             self.ctx = (prediction, s, target, False)
 
             # np.arange(len(target.data)), target.data.astype(int)] = [i, target[i]] with i = 1,...,len(target.data)
-            return -1 * s[np.arange(len(target.data)), target.data.astype(int)]
+            result = -1 * s[np.arange(len(target.data)), target.data.astype(int)]
+        
+        return self._result_tensor(result.mean().data, prediction.requires_grad)
     
     def backward(self, grad_output):
         """_summary_
@@ -429,6 +434,6 @@ class CrossEntropyOp(Function):
         """
         prediction, s, target, is_one_hot = self.ctx
 
-        prediction_grad = s - (target if is_one_hot else target.one_hot(s.shape()[0])) # No se si es 0 o 1
+        prediction_grad = s - (target if is_one_hot else target.one_hot(s.shape()[1])) # No se si es 0 o 1
         
-        self._update_grad(prediction, prediction_grad * grad_output)
+        self._update_grad(prediction, prediction_grad.data * grad_output)

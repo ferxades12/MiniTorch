@@ -1,10 +1,11 @@
 from src.base import Function
 from src.tensor import Tensor
 from src.activations import Softmax
+from src.operations import CrossEntropyOp
 import numpy as np
 
 class MSE(Function):
-    def forward(self, prediction, target):
+    def forward(self, prediction : Tensor, target):
         """Calculates the Mean Squared Error between prediction and target tensors
 
         Args:
@@ -19,5 +20,7 @@ class MSE(Function):
         return ((prediction - target) ** 2).mean()
 
 class CrossEntropy(Function):
-    def forward(self, tensor, target):
+    def forward(self, tensor : Tensor, target):
         target = target if isinstance(target, Tensor) else Tensor(target)
+
+        return tensor._apply_binary_op(CrossEntropyOp, target)
