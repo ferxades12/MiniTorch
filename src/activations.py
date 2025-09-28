@@ -9,7 +9,7 @@ from src.base import Function
 
 
 class ReLU(Function):
-    def forward(self, tensor):
+    def forward(self, tensor) -> Tensor:
         """Applies the ReLU function element-wise using the maximum operation
 
         Args:
@@ -22,7 +22,7 @@ class ReLU(Function):
 
 
 class Sigmoid(Function):
-    def forward(self, tensor):
+    def forward(self, tensor) -> Tensor:
         """Applies the sigmoid function element-wise
 
         Args:
@@ -36,7 +36,7 @@ class Sigmoid(Function):
 
 
 class Tanh(Function):
-    def forward(self, tensor):
+    def forward(self, tensor) -> Tensor:
         """Applies the hyperbolic tangent function element-wise using the sigmoid function
 
         Args:
@@ -49,7 +49,7 @@ class Tanh(Function):
 
 
 class Softmax(Function):
-    def forward(self, tensor):
+    def forward(self, tensor) -> Tensor:
         """Applies the softmax function to a tensor. Currently only supports 1D tensors
 
         Args:

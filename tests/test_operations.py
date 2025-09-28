@@ -52,9 +52,9 @@ def test_pow(base, exp):
     tc.sum().backward()
 
     assert np.allclose(C.data, tc.detach().numpy(), atol=1e-5)
-    assert np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
+    assert ta.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
     if B.numdims() > 0:
-        assert np.allclose(B.grad, tb.grad.numpy(), atol=1e-5)
+        assert tb.grad is not None and np.allclose(B.grad, tb.grad.numpy(), atol=1e-5)
 
 @pytest.mark.parametrize("a, b", [
     ([[1, 2, 3]], [[4, 5, 6]]),                # vectores fila
@@ -75,9 +75,9 @@ def test_mul(a, b):
     tc.sum().backward()
 
     assert np.allclose(C.data, tc.detach().numpy(), atol=1e-5)
-    assert np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
+    assert ta.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
     if isinstance(B, M.Tensor):
-        assert np.allclose(B.grad, tb.grad.numpy(), atol=1e-5)
+        assert tb.grad is not None and np.allclose(B.grad, tb.grad.numpy(), atol=1e-5)
 
 @pytest.mark.parametrize("arr", [
     [[1, 2, 3], [4, 5, 6]],                  # matriz 2x3
@@ -97,7 +97,7 @@ def test_transpose(arr):
     tb.sum().backward()
 
     assert np.allclose(B.data, tb.detach().numpy(), atol=1e-5)
-    assert np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
+    assert ta.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
 
 @pytest.mark.parametrize("a, b", [
     ([1, 2, 3], [4, 5, 6]),                      # vectores 1D
@@ -118,8 +118,8 @@ def test_dot(a, b):
     tc.sum().backward()
 
     assert np.allclose(C.data, tc.detach().numpy(), atol=1e-5)
-    assert np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
-    assert np.allclose(B.grad, tb.grad.numpy(), atol=1e-5)
+    assert ta.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
+    assert tb.grad is not None and np.allclose(B.grad, tb.grad.numpy(), atol=1e-5)
 
 @pytest.mark.parametrize("arr", [
     [[-1, 0], [1, -1]],           # negativos, ceros y positivos
@@ -140,7 +140,7 @@ def test_relu(arr):
     B.sum().backward()
     tb.sum().backward()
 
-    assert np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
+    assert ta.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
     assert np.allclose(B.data, tb.detach().numpy(), atol=1e-5)
 
 @pytest.mark.parametrize("arr", [
@@ -162,7 +162,7 @@ def test_sigmoid(arr):
     B.sum().backward()
     tb.sum().backward()
 
-    assert np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
+    assert ta.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
     assert np.allclose(B.data, tb.detach().numpy(), atol=1e-5)
 
 @pytest.mark.parametrize("arr", [
@@ -184,7 +184,7 @@ def test_tanh(arr):
     B.sum().backward()
     tb.sum().backward()
 
-    assert np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
+    assert ta.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
     assert np.allclose(B.data, tb.detach().numpy(), atol=1e-5)
 
 @pytest.mark.parametrize("arr", [
@@ -207,7 +207,7 @@ def test_softmax_1d(arr):
     B.sum().backward()
     tb.sum().backward()
 
-    assert np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
+    assert ta.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
     assert np.allclose(B.data, tb.detach().numpy(), atol=1e-5)
 
 
@@ -238,7 +238,7 @@ def test_softmax_no_dim(arr):
 
     # Verifica que los resultados sean iguales
     assert np.allclose(B.data, tb.detach().numpy(), atol=1e-5)
-    assert np.allclose(A.grad, ta.grad, atol=1e-5)
+    assert ta.grad is not None and np.allclose(A.grad, ta.grad, atol=1e-5)
 
 @pytest.mark.parametrize("arr", [
     [1, 2, 3],                  # Valores positivos simples
@@ -260,7 +260,7 @@ def test_log(arr):
 
     # Verifica que los resultados sean iguales
     assert np.allclose(B.data, tb.detach().numpy(), atol=1e-5)
-    assert np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
+    assert ta.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
 
 if __name__ == "__main__":
     pytest.main([__file__])

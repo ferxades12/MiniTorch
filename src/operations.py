@@ -26,7 +26,7 @@ class OpFunction(Function):
                 tensor.grad_fn.backward(grad)
 
 
-    def _result_tensor(self, value, requires_grad):
+    def _result_tensor(self, value : np.ndarray, requires_grad: bool):
         """Creates a Tensor with the values provided
         This function is called in the forward method of each operation, 
         so the resulting tensor is not a leaf
@@ -40,9 +40,6 @@ class OpFunction(Function):
         """
 
         from src.tensor import Tensor
-
-        if isinstance(value, Tensor):
-            raise ValueError("value no deberia ser un Tensor")
     
         result = Tensor(value, requires_grad=requires_grad)
         result.is_leaf = False

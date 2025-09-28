@@ -3,7 +3,7 @@ from src.tensor import Tensor
 from src.operations import CrossEntropyOp
 
 class MSE(Function):
-    def forward(self, prediction : Tensor, target):
+    def forward(self, prediction : Tensor, target) -> Tensor:
         """Calculates the Mean Squared Error between prediction and target tensors
 
         Args:

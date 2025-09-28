@@ -57,7 +57,7 @@ class Tensor:
     def log(self):
         return self._apply_unary_op(Log)
 
-    def _apply_binary_op(self, op, other, reverse = False):
+    def _apply_binary_op(self, op, other, reverse = False) -> 'Tensor':
         """
         Applies a binary operation between self and other
 
@@ -81,7 +81,7 @@ class Tensor:
 
         return result
     
-    def _apply_unary_op(self, op, *args):
+    def _apply_unary_op(self, op, *args) -> 'Tensor':
         """
         Applies a unary operation to self
 
@@ -112,7 +112,7 @@ class Tensor:
     def shape(self):
         return self.data.shape
 
-    def numel(self):
+    def numel(self) -> int:
         """
         Returns the number of elements in the tensor
         """
@@ -121,13 +121,13 @@ class Tensor:
             n *= dim
         return n
     
-    def numdims(self):
+    def numdims(self) -> int:
         """
         Returns the number of dimensions of the tensor
         """
         return len(self.shape())
     
-    def reshape(self, dims):
+    def reshape(self, dims) -> 'Tensor':
         reshaped = Tensor(self.data.reshape(dims), self.requires_grad)
 
         if self.requires_grad and hasattr(self, "grad") :
@@ -135,7 +135,7 @@ class Tensor:
         
         return reshaped
     
-    def one_hot(self, length):
+    def one_hot(self, length) -> np.ndarray:
         if self.numdims() != 1:
             raise ValueError("one_hot es solo para vectores")
 
@@ -144,7 +144,7 @@ class Tensor:
 
         return one_hot
 
-    def copy(self):
+    def copy(self) -> 'Tensor':
         copy = Tensor(self.data.copy(), self.requires_grad)
         if hasattr(self, "grad"):
             copy.grad = self.grad
@@ -155,7 +155,7 @@ class Tensor:
         copy.is_leaf = self.is_leaf
         return copy
 
-def maximum(A, B):
+def maximum(A, B) -> 'Tensor':
     """
     returns the maximun bit-wise of A and B
     """
@@ -163,7 +163,7 @@ def maximum(A, B):
 
     return A._apply_binary_op(Maximum, B)
 
-def minimum(A, B):
+def minimum(A, B) -> 'Tensor':
     """
     returns the minimum bit-wise of A and B
     """
