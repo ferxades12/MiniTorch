@@ -383,7 +383,6 @@ class SoftmaxOp(OpFunction):
 
         self._update_grad(tensor, tensor_grad)
 
-
 class CrossEntropyOp(OpFunction):
     def forward(self, prediction, target):
         """
