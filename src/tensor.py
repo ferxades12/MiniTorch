@@ -1,7 +1,8 @@
 from src.operations import *
+import numpy as np
 
 class Tensor:
-    grad = None
+    grad : np.ndarray
     grad_fn : Function
     is_leaf = True
 
@@ -129,20 +130,30 @@ class Tensor:
     def reshape(self, dims):
         reshaped = Tensor(self.data.reshape(dims), self.requires_grad)
 
-        if self.requires_grad:
-            reshaped.grad = self.grad.reshape(dims) if self.grad is not None else None
+        if self.requires_grad and hasattr(self, "grad") :
+            reshaped.grad = self.grad.reshape(dims)
         
         return reshaped
     
     def one_hot(self, length):
         if self.numdims() != 1:
             raise ValueError("one_hot es solo para vectores")
-        tensor = self.reshape((-1, 1))
 
-        one_hot = np.zeros((tensor.shape()[0], length))
-        one_hot[np.arange(len(self.data)), tensor.data] = 1
+        one_hot = np.zeros((self.shape()[0], length))
+        one_hot[np.arange(len(self.data)), self.data.astype(int)] = 1
 
         return one_hot
+
+    def copy(self):
+        copy = Tensor(self.data.copy(), self.requires_grad)
+        if hasattr(self, "grad"):
+            copy.grad = self.grad
+        
+        if hasattr(self, "grad_fn"):
+            copy.grad_fn = self.grad_fn
+
+        copy.is_leaf = self.is_leaf
+        return copy
 
 def maximum(A, B):
     """
