@@ -8,7 +8,7 @@ Autograd: cálculo manual del gradiente y backward propagation ✅
 
 Funciones de activación: ReLU, Sigmoid, Tanh, Softmax. ✅
 
-Funciones de pérdida: MSE, Cross-Entropy.
+Funciones de pérdida: MSE, Cross-Entropy.✅
 
 Optimización con Gradient Descent, Adam, RMSProp.
 
