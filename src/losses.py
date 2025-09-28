@@ -1,8 +1,6 @@
 from src.base import Function
 from src.tensor import Tensor
-from src.activations import Softmax
 from src.operations import CrossEntropyOp
-import numpy as np
 
 class MSE(Function):
     def forward(self, prediction : Tensor, target):
@@ -20,7 +18,12 @@ class MSE(Function):
         return ((prediction - target) ** 2).mean()
 
 class CrossEntropy(Function):
-    def forward(self, tensor : Tensor, target):
-        target = target if isinstance(target, Tensor) else Tensor(target)
-
+    def forward(self, tensor : Tensor, target) -> Tensor:
+        """Calculates the Cross-Entropy loss between prediction and target tensors
+        Args:
+            tensor (Tensor): The predicted logits tensor.
+            target (TensorLike): The target tensor, either as class indices or one-hot encoded.
+        Returns:
+            Tensor: The resulting tensor after calculating the Cross-Entropy loss.
+        """
         return tensor._apply_binary_op(CrossEntropyOp, target)

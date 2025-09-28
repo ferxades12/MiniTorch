@@ -381,7 +381,7 @@ class SoftmaxOp(OpFunction):
             # Otherwise: Calculates the gradient row by row
             tensor_grad = np.zeros_like(tensor.data)
             for i in range(len(tensor.data)):
-                si = s[i].reshape(-1, 1)  # Convierte cada fila en columna
+                si = s[i].reshape(-1, 1)  
                 tensor_grad[i] = np.dot(np.diagflat(si) - np.dot(si, si.T), grad_output[i])
 
         self._update_grad(tensor, tensor_grad)
@@ -393,28 +393,28 @@ class CrossEntropyOp(OpFunction):
         Calculates the Cross-Entropy loss between prediction and target tensors.
 
         If target is a vector Ex. [2, 1, 0]
-            CE = - Σ log(Softmax(prediction)[i, target[i]])
+            CE = - Σ log(Softmax(prediction)[i, target[i]])  .mean()
             This selects the correct class based on the index in target for each sample
         
         If target is a one-hot tensor Ex. [[0, 0, 1], [0, 1, 0], [1, 0, 0]]
-            CE = - Σ (target * log(Softmax(prediction)))
+            CE = - Σ (target * log(Softmax(prediction)))   .mean()
             The bit-wise multiplication implicitly selects the correct class for each sample
         
         Args:
             prediction (Tensor): The predicted logits tensor.
-            target (Tensor or list): The ground truth target tensor (one-hot or class indices).
+            target (Tensor): The target tensor (one-hot or class indices).
 
         Returns:
             Tensor: The resulting scalar tensor after calculating the Cross-Entropy loss.
         """
         
-        s = SoftmaxOp()(prediction)
+        s = SoftmaxOp()(prediction.copy())
 
         if target.shape() == s.shape():
             # Target is one-hot
             self.ctx = (prediction, s, target, True)
 
-            result = -1 * (target * s.log()).sum(axis=1)
+            result = -1 * (target * s.log()).sum(axis=1).mean().data
             
 
         else:
@@ -422,18 +422,20 @@ class CrossEntropyOp(OpFunction):
             self.ctx = (prediction, s, target, False)
 
             # np.arange(len(target.data)), target.data.astype(int)] = [i, target[i]] with i = 1,...,len(target.data)
-            result = -1 * s[np.arange(len(target.data)), target.data.astype(int)]
+            result = s[np.arange(len(target.data)), target.data.astype(int)]
+            result = -1 * np.log(result)
+            result = np.mean(result)
         
-        return self._result_tensor(result.mean().data, prediction.requires_grad)
+        return self._result_tensor(result, prediction.requires_grad)
     
     def backward(self, grad_output):
-        """_summary_
+        """Computes the gradient of the Cross-Entropy loss.
 
-        - Σ (target * log(Softmax(x)))   d/dx               = Softmax(x) - target
-        - Σ log(Softmax(prediction)[i, target[i]])   d/dx   = Softmax(x) - 1 if i = target[i] else 0
+        - Σ (target * log(Softmax(x)))   d/dx               = (Softmax(x) - target) / batchsize
+        - Σ log(Softmax(prediction)[i, target[i]])   d/dx   = (Softmax(x) - 1 if i = target[i] else 0) / batchsize
         """
         prediction, s, target, is_one_hot = self.ctx
 
-        prediction_grad = s - (target if is_one_hot else target.one_hot(s.shape()[1])) # No se si es 0 o 1
+        prediction_grad = (s - (target if is_one_hot else target.one_hot(s.shape()[1]))) / prediction.shape()[0]
         
         self._update_grad(prediction, prediction_grad.data * grad_output)
