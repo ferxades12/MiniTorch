@@ -2,7 +2,7 @@ from src.operations import *
 import numpy as np
 
 class Tensor:
-    grad : np.ndarray
+    grad = None
     grad_fn : Function
     is_leaf = True
 
@@ -130,7 +130,7 @@ class Tensor:
     def reshape(self, dims) -> 'Tensor':
         reshaped = Tensor(self.data.reshape(dims), self.requires_grad)
 
-        if self.requires_grad and hasattr(self, "grad") :
+        if self.requires_grad and self.grad is not None:
             reshaped.grad = self.grad.reshape(dims)
         
         return reshaped
@@ -146,7 +146,7 @@ class Tensor:
 
     def copy(self) -> 'Tensor':
         copy = Tensor(self.data.copy(), self.requires_grad)
-        if hasattr(self, "grad"):
+        if self.grad is not None:
             copy.grad = self.grad
         
         if hasattr(self, "grad_fn"):

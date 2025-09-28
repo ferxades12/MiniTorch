@@ -25,7 +25,7 @@ def test_softmax_1d(arr):
     B.sum().backward()
     tb.sum().backward()
 
-    assert ta.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
+    assert ta.grad is not None and A.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
     assert np.allclose(B.data, tb.detach().numpy(), atol=1e-5)
 
 @pytest.mark.parametrize("arr", [
@@ -55,7 +55,7 @@ def test_softmax(arr):
 
     # Verifica que los resultados sean iguales
     assert np.allclose(B.data, tb.detach().numpy(), atol=1e-5)
-    assert ta.grad is not None and np.allclose(A.grad, ta.grad, atol=1e-5)
+    assert ta.grad is not None and A.grad is not None and np.allclose(A.grad, ta.grad, atol=1e-5)
 
 @pytest.mark.parametrize("arr", [
     [[-1, 0], [1, -1]],           # negativos, ceros y positivos
@@ -76,7 +76,7 @@ def test_relu(arr):
     B.sum().backward()
     tb.sum().backward()
 
-    assert ta.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
+    assert ta.grad is not None and A.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
     assert np.allclose(B.data, tb.detach().numpy(), atol=1e-5)
 
 @pytest.mark.parametrize("arr", [
@@ -98,7 +98,7 @@ def test_sigmoid(arr):
     B.sum().backward()
     tb.sum().backward()
 
-    assert ta.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
+    assert ta.grad is not None and A.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
     assert np.allclose(B.data, tb.detach().numpy(), atol=1e-5)
 
 @pytest.mark.parametrize("arr", [
@@ -120,7 +120,7 @@ def test_tanh(arr):
     B.sum().backward()
     tb.sum().backward()
 
-    assert ta.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
+    assert ta.grad is not None and A.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
     assert np.allclose(B.data, tb.detach().numpy(), atol=1e-5)
 
 @pytest.mark.parametrize("arr", [
@@ -173,11 +173,11 @@ def test_chain_activations(arr):
     assert np.allclose(Out.data, out_t.detach().numpy(), atol=1e-5)
 
     # Gradientes del input
-    assert ta.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
+    assert ta.grad is not None and A.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
 
     # Gradientes de pesos W1 y W2
-    assert w1.grad is not None and np.allclose(W1.grad, w1.grad.numpy(), atol=1e-5)
-    assert w2.grad is not None and np.allclose(W2.grad, w2.grad.numpy(), atol=1e-5)
+    assert w1.grad is not None and W1.grad is not None and np.allclose(W1.grad, w1.grad.numpy(), atol=1e-5)
+    assert w2.grad is not None and W2.grad is not None and np.allclose(W2.grad, w2.grad.numpy(), atol=1e-5)
 
     # Gradientes de nodos intermedios
     # Ejemplo: gradiente de Z1 y H1 respecto a la suma final
