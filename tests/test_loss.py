@@ -26,7 +26,7 @@ def test_mse(pred, target):
     ref_loss.backward()
 
     assert np.allclose(loss.data, ref_loss.detach().numpy(), atol=1e-5)
-    assert np.allclose(a.grad, ta.grad.numpy(), atol=1e-5)
+    assert (ta.grad is not None) and np.allclose(a.grad, ta.grad.numpy(), atol=1e-5)
 
 @pytest.mark.parametrize("pred, target", [
     ([[2.0, 1.0, 0.1], [0.5, 2.5, 0.3]], [0, 1]),  # Índices enteros
@@ -57,11 +57,8 @@ def test_cross_entropy(pred, target):
 
     # Verificaciones
     assert np.allclose(loss.data, ref_loss.detach().numpy(), atol=1e-5)
-    assert np.allclose(a.grad, ta.grad.numpy(), atol=1e-5)
+    assert (ta.grad is not None) and np.allclose(a.grad, ta.grad, atol=1e-5)
 
-
-if __name__ == "__main__":
-    pytest.main([__file__])
 
 if __name__ == "__main__":
     pytest.main([__file__])
