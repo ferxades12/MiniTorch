@@ -1,8 +1,8 @@
 import src as M
 import torch
 import pytest
-from src.activations import *
-from src.losses import *
+from src.nn.activations import *
+from src.nn.losses import *
 import numpy as np
 
 

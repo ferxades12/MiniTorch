@@ -1,9 +1,9 @@
 import src as M
 import torch
 import pytest
-from src.activations import *
-from src.losses import *
-from src.optimizers import *
+from src.nn.activations import *
+from src.nn.losses import *
+from src.nn.optimizers import *
 import numpy as np
 
 @pytest.mark.parametrize("lr", [0.01, 0.1])
