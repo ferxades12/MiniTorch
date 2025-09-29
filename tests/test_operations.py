@@ -116,6 +116,29 @@ def test_log(arr):
     assert np.allclose(B.data, tb.detach().numpy(), atol=1e-5)
     assert ta.grad is not None and A.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
 
+@pytest.mark.parametrize("a, b", [
+    ([[1, 2, 3], [4, 5, 6]], [10, 20, 30]),      # matriz + vector (broadcast en filas)
+    ([[1, 2, 3], [4, 5, 6]], [[10], [20]]),      # matriz + columna (broadcast en columnas)
+    ([[1, 2, 3]], 5),                            # matriz + escalar
+    (np.random.uniform(-5, 5, (4, 3)), np.random.uniform(-2, 2, (3,))), # aleatorio + vector
+])
+def test_add(a, b):
+    A = M.Tensor(a, requires_grad=True)
+    B = M.Tensor(b, requires_grad=True) if not np.isscalar(b) else b
+
+    C = A + B
+    ta = torch.tensor(a, dtype=torch.float32, requires_grad=True)
+    tb = torch.tensor(b, dtype=torch.float32, requires_grad=True) if not np.isscalar(b) else b
+    tc = ta + tb
+
+    C.sum().backward()
+    tc.sum().backward()
+
+    assert np.allclose(C.data, tc.detach().numpy(), atol=1e-5)
+    assert ta.grad is not None and A.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
+    if isinstance(B, M.Tensor):
+        # El gradiente de B debe tener el mismo shape que tb.grad
+        assert tb.grad is not None and B.grad is not None and np.allclose(B.grad, tb.grad.numpy(), atol=1e-5)
 
 if __name__ == "__main__":
     pytest.main([__file__])

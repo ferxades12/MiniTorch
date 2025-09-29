@@ -25,7 +25,6 @@ class OpFunction(Function):
             else:
                 tensor.grad_fn.backward(grad)
 
-
     def _result_tensor(self, value : np.ndarray, requires_grad: bool):
         """Creates a Tensor with the values provided
         This function is called in the forward method of each operation, 
@@ -46,6 +45,30 @@ class OpFunction(Function):
 
         return result
 
+    def _unbroadcast(self, grad, target_shape):
+        """Unbroadcasts the gradient to match the target shape.
+
+            If the grad has more dimensions than the target shape, it means
+            grad was broascasted, so we sum over the extra dimensions.
+
+            If a dimension in the target has size 1, that dimension was broadcasted, 
+            so we sum over it in the gradient to match the target shape.
+        Args:
+            grad (np.ndarray): The gradient to unbroadcast.
+            target_shape (tuple): The target shape to match.
+
+        Returns:
+            np.ndarray: The unbroadcasted gradient.
+        """
+        while len(grad.shape) > len(target_shape):
+            grad = grad.sum(axis=0)
+
+
+        for i, dim in enumerate(target_shape):
+            if dim == 1:
+                grad = grad.sum(axis=i, keepdims=True)
+
+        return grad
 
 class Mul(OpFunction):
     def forward(self, tensor, other):
@@ -91,8 +114,8 @@ class Add(OpFunction):
 
         tensor, other = self.ctx
 
-        self._update_grad(tensor, grad_output)
-        self._update_grad(other, grad_output)
+        self._update_grad(tensor, self._unbroadcast(grad_output, tensor.shape()))
+        self._update_grad(other, self._unbroadcast(grad_output, other.shape()))
 
 class Sub(OpFunction):
     def forward(self, tensor, other):
