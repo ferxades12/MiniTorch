@@ -30,6 +30,8 @@ class SGD(Optimizer):
         self.maximize = maximize
         self.updates = [np.zeros_like(p.data) for p in parameters]
 
+        if momentum == 0: self.dampening = 0
+
     def step(self):
         """Perform a single optimization step.
 
