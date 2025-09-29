@@ -12,18 +12,27 @@ Funciones de pérdida: MSE, Cross-Entropy.✅
 
 Optimización con Gradient Descent, Adam, RMSProp.
 
+Cpas de Redes neuronales: Linear
+
+Regularizacion: L1, L2, dropout
+
+Model serialization
+
+Algoritmos de Machine Learning
+
 Ejemplos prácticos: regresión lineal, clasificación simple.
 
 📂 Estructura del Proyecto<br>
 ```
 MiniTorch/
 │
-├── src/ # Ejemplos de uso
+├── src/
+│ ├── nn/
+│ │ ├── activations.py # Funciones de activación
+│ │ ├── losses.py # Funciones de pérdida
+│ │ └── optimizers.py # Optimizadores (SGD)
 │ ├── tensor.py # Clase Tensor personalizada
-│ ├── operations.py # Operaciones básicas (suma, multiplicación, etc.)
-│ ├── activations.py # Funciones de activación
-│ ├── losses.py # Funciones de pérdida
-│ └── optimizers.py # Optimizadores (SGD)
+│ └── operations.py # Operaciones básicas (suma, multiplicación, etc.)
 ├── examples/ # Ejemplos de uso
 │ └── linear_regression.py
 ├── tests/
