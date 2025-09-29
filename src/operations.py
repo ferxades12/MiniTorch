@@ -20,6 +20,9 @@ class OpFunction(Function):
         """
 
         if tensor.requires_grad:
+            if tensor.shape() != grad.shape:
+                grad = self._unbroadcast(grad, tensor.shape())
+
             if tensor.is_leaf:
                 tensor.grad = tensor.grad + grad if tensor.grad is not None else grad
             else:
@@ -90,8 +93,8 @@ class Mul(OpFunction):
 
         tensor, other = self.ctx
 
-        self._update_grad(tensor,  self._unbroadcast(other.data * grad_output, tensor.shape()))
-        self._update_grad(other, self._unbroadcast(tensor.data *grad_output, other.shape()))
+        self._update_grad(tensor,  other.data * grad_output)
+        self._update_grad(other, tensor.data *grad_output)
 
 class Add(OpFunction):
     def forward(self, tensor, other):
@@ -114,8 +117,8 @@ class Add(OpFunction):
 
         tensor, other = self.ctx
 
-        self._update_grad(tensor, self._unbroadcast(grad_output, tensor.shape()))
-        self._update_grad(other, self._unbroadcast(grad_output, other.shape()))
+        self._update_grad(tensor, grad_output)
+        self._update_grad(other, grad_output)
 
 class Sub(OpFunction):
     def forward(self, tensor, other):
