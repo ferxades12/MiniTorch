@@ -14,7 +14,7 @@ class Tensor:
             requires_grad (bool, optional): if True, the tensor will track operations for autograd. Defaults to False.
         """
 
-        self.data = np.array(data)
+        self.data = np.array(data, dtype=np.float32)
         self.requires_grad = requires_grad
 
         if self.requires_grad:
