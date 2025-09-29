@@ -30,27 +30,36 @@ def test_pow(base, exp):
         assert tb.grad is not None and B.grad is not None and np.allclose(B.grad, tb.grad.numpy(), atol=1e-5)
 
 @pytest.mark.parametrize("a, b", [
-    ([[1, 2, 3]], [[4, 5, 6]]),                # vectores fila
-    ([[1e-7, 1, 10]], [[-2, 0, 2]]),           # valores pequeños, cero y negativos
-    ([[2, 3, 4]], 2),                          # tensor por escalar
-    (np.random.uniform(-5, 5, (3, 3)), np.random.uniform(-2, 2, (3, 3))), # aleatorio
+    ([[1, 2, 3]], [[4, 5, 6]]),                # vectores fila (sin broadcasting)
+    ([[1e-7, 1, 10]], [[-2, 0, 2]]),           # valores pequeños, cero y negativos (sin broadcasting)
+    ([[2, 3, 4]], 2),                          # tensor por escalar (broadcasting)
+    (np.random.uniform(-5, 5, (3, 3)), np.random.uniform(-2, 2, (3, 3))), # aleatorio (sin broadcasting)
+    ([[1, 2, 3], [4, 5, 6]], [10, 20, 30]),    # matriz * vector (broadcast en filas)
+    ([[1, 2, 3], [4, 5, 6]], [[10], [20]]),    # matriz * columna (broadcast en columnas)
+    ([[1, 2, 3]], 5),                          # matriz * escalar (broadcasting)
+    (np.random.uniform(-5, 5, (4, 3)), np.random.uniform(-2, 2, (3,))), # aleatorio + vector (broadcast en filas)
 ])
 def test_mul(a, b):
     A = M.Tensor(a, requires_grad=True)
-    B = M.Tensor(b, requires_grad=True) if isinstance(b, (list, np.ndarray)) else b
+    B = M.Tensor(b, requires_grad=True)
 
     C = A * B
     ta = torch.tensor(a, dtype=torch.float32, requires_grad=True)
-    tb = torch.tensor(b, dtype=torch.float32, requires_grad=True) if isinstance(b, (list, np.ndarray)) else b
+    tb = torch.tensor(b, dtype=torch.float32, requires_grad=True)
     tc = ta * tb
 
     C.sum().backward()
     tc.sum().backward()
 
+    print(B.grad, tb.grad)
+
     assert np.allclose(C.data, tc.detach().numpy(), atol=1e-5)
     assert ta.grad is not None and A.grad is not None and np.allclose(A.grad, ta.grad.numpy(), atol=1e-5)
     if isinstance(B, M.Tensor):
-        assert tb.grad is not None and B.grad is not None and np.allclose(B.grad, tb.grad.numpy(), atol=1e-5)
+        # El gradiente de B debe tener el mismo shape que tb.grad
+        assert tb.grad is not None and B.grad is not None
+        assert B.grad.shape == tb.grad.shape
+        assert np.allclose(B.grad, tb.grad.numpy(), atol=1e-5)
 
 @pytest.mark.parametrize("arr", [
     [[1, 2, 3], [4, 5, 6]],                  # matriz 2x3

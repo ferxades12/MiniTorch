@@ -68,7 +68,7 @@ class OpFunction(Function):
             if dim == 1:
                 grad = grad.sum(axis=i, keepdims=True)
 
-        return grad
+        return grad.reshape(target_shape)
 
 class Mul(OpFunction):
     def forward(self, tensor, other):
@@ -90,8 +90,8 @@ class Mul(OpFunction):
 
         tensor, other = self.ctx
 
-        self._update_grad(tensor, other.data * grad_output)
-        self._update_grad(other, tensor.data * grad_output)
+        self._update_grad(tensor,  self._unbroadcast(other.data * grad_output, tensor.shape()))
+        self._update_grad(other, self._unbroadcast(tensor.data *grad_output, other.shape()))
 
 class Add(OpFunction):
     def forward(self, tensor, other):
