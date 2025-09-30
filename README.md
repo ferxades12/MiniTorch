@@ -14,7 +14,7 @@ Optimización con Gradient Descent, Adam.✅
 
 Capas de Redes neuronales: Linear
 
-Regularizacion: L1, L2, dropout
+Regularizacion: L1, L2, dropout 
 
 Model serialization
 
