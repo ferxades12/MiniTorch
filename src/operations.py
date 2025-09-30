@@ -167,9 +167,10 @@ class Pow(OpFunction):
 
         tensor, index, result = self.ctx
 
-        with np.errstate(divide='ignore', invalid='ignore'): # Avoid numpy warnings with extreme values
-            tensor_grad = index.data * (np.pow(tensor.data, (index.data - 1))) * grad_output
-            index_grad = result * np.log(tensor.data) * grad_output
+        tensor_grad = index.data * (np.pow(tensor.data, (index.data - 1))) * grad_output
+
+        safe_data = np.where(tensor.data <= 0, 1e-10, tensor.data)
+        index_grad = result * np.log(safe_data) * grad_output
 
         self._update_grad(tensor, tensor_grad)
         self._update_grad(index, index_grad)
@@ -209,7 +210,7 @@ class Sum(OpFunction):
             Tensor: The resulting tensor.
         """
 
-        self.ctx = tensor
+        self.ctx = tensor, axis
 
         return self._result_tensor(np.sum(tensor.data, axis=axis), tensor.requires_grad)
 
@@ -219,9 +220,16 @@ class Sum(OpFunction):
 
         (sum(x)) d/dx = np.ones(x.shape)
         """
-        tensor = self.ctx
+        tensor, ax = self.ctx
 
-        self._update_grad(tensor, np.ones(tensor.shape()) * grad_output)
+        if ax is None:
+            grad = np.ones(tensor.shape()) * grad_output
+        else:
+            # Expand dims to match the original tensor shape
+            grad = np.expand_dims(grad_output, axis=ax)
+            grad = np.broadcast_to(grad, tensor.shape())
+
+        self._update_grad(tensor, grad)
 
 class Transpose(OpFunction):
     def forward(self, tensor):
