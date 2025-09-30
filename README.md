@@ -10,9 +10,9 @@ Funciones de activación: ReLU, Sigmoid, Tanh, Softmax. ✅
 
 Funciones de pérdida: MSE, Cross-Entropy.✅
 
-Optimización con Gradient Descent, Adam, RMSProp.
+Optimización con Gradient Descent, Adam.✅
 
-Cpas de Redes neuronales: Linear
+Capas de Redes neuronales: Linear
 
 Regularizacion: L1, L2, dropout
 
