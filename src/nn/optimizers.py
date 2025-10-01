@@ -1,3 +1,12 @@
+"""
+Includes implementations for SGD and Adam optimizers.
+
+Each optimizer updates model parameters based on their gradients to minimize (maximize) a loss function.
+Each parameter is a Tensor with .data and .grad attributes.
+
+Each nn layer has a weights and bias parameters
+"""
+
 import numpy as np
 
 class Optimizer():
