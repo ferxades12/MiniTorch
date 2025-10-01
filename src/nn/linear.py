@@ -16,10 +16,19 @@ class Linear(Module):
         size = (in_features, out_features)
         self.weight = Tensor(np.random.uniform(-k, k, size), requires_grad=True)
 
-        self.parameters.append(self.weight)
+        self.params.append(self.weight)
 
         if bias:
             self.bias = Tensor(np.random.uniform(-k, k, out_features), requires_grad=True)
-            self.parameters.append(self.bias)
+            self.params.append(self.bias)
+        else:
+            self.bias = None
        
+    def forward(self, x:Tensor) -> Tensor:
+        if x.shape()[-1] != self.weight.shape()[0]:
+            raise ValueError("Variable dimensions are not correct")
         
+        x = x if isinstance(x, Tensor) else Tensor(x)
+        bias = self.bias if self.bias is not None else 0
+
+        return x.dot(self.weight) + bias

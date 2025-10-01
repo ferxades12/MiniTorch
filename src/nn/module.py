@@ -2,7 +2,7 @@
 class Module:
     def __init__(self):
         self.submodules = []
-        self._parameters = []
+        self.params = []
 
     def __call__(self, *args):
         return self.forward(*args)
@@ -11,11 +11,11 @@ class Module:
         raise  NotImplementedError
 
     def parameters(self):
-        params = list(self._parameters)
+        params = self.params
 
         for module in self.submodules:
             params.extend(module.parameters())
 
-        return params
+        return params 
 
     
