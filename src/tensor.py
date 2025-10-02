@@ -171,3 +171,8 @@ def minimum(A, B) -> 'Tensor':
 
     return A._apply_binary_op(Minimum, B)
 
+def random(*shape) -> 'Tensor':
+    """
+    returns a tensor with the given shape, filled with random values from a uniform distribution [0, 1)
+    """
+    return Tensor(np.random.rand(*shape))
