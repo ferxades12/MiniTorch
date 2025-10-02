@@ -86,7 +86,7 @@ class Mul(OpFunction):
 
     def backward(self, grad_output):
         """
-        Retrieves the data in ctx and updates grads
+        Computes the gradient of the multiplication operation.
 
         ax d/dx = a
         """
@@ -109,7 +109,7 @@ class Add(OpFunction):
 
     def backward(self, grad_output):
         """
-        Retrieves the data in ctx and updates grads
+        Computes the gradient of the addition operation.
 
         (x + a) d/dx = 1
         (x + a) d/da = 1
@@ -133,7 +133,7 @@ class Sub(OpFunction):
 
     def backward(self, grad_output):
         """
-        Retrieves the data in ctx and updates grads
+        Computes the gradient of the subtraction operation.
 
         (x - a) d/dx = -1
         """
@@ -159,7 +159,7 @@ class Pow(OpFunction):
 
     def backward(self, grad_output):
         """
-        Retrieves the data in ctx and updates grads
+        Computes the gradient of the power operation.
 
         x^a d/dx = a * x^(a-1)
         a^x d/dx = a^x * ln(a)
@@ -188,10 +188,10 @@ class Dot(OpFunction):
 
     def backward(self, grad_output):
         """
-        Retrieves the data in ctx and updates grads
+        Computes the gradient of the dot product operation.
 
-        (A * X) d/dx =
-        (X * A) d/dx =
+        (A * X) d/dx = A.T
+        (X * A) d/dx = X.T
         """
 
         tensor, other = self.ctx
@@ -216,7 +216,7 @@ class Sum(OpFunction):
 
     def backward(self, grad_output):
         """
-        Retrieves the data in ctx and updates grads
+        Computes the gradient of the sum operation.
 
         (sum(x)) d/dx = np.ones(x.shape)
         """
@@ -244,7 +244,7 @@ class Transpose(OpFunction):
 
     def backward(self, grad_output):
         """
-        Retrieves the data in ctx and updates grads
+        Computes the gradient of the transpose operation.
 
         (x.T) d/dx = I
         """
@@ -265,7 +265,8 @@ class Maximum(OpFunction):
 
     def backward(self, grad_output):
         """
-        Retrieves the data in ctx and updates grads
+        Computes the gradient of the maximum operation.
+
         (max(x, a)) d/dx = 1 if x > a else 0
         (max(x, a)) d/da = 1 if a > x else 0
         """
@@ -290,7 +291,7 @@ class Minimum(OpFunction):
 
     def backward(self, grad_output):
         """
-        Retrieves the data in ctx and updates grads
+        Computes the gradient of the minimum operation.
 
         (min(x, a)) d/dx = 1 if x < a else 0
         (min(x, a)) d/da = 1 if a < x else
@@ -316,7 +317,7 @@ class Div(OpFunction):
 
     def backward(self, grad_output):
         """
-        Retrieves the data in ctx and updates grads
+        Computes the gradient of the division operation.
 
         x / a d/dx = 1/a
         a / x d/dx = -a/x^2
@@ -339,7 +340,7 @@ class Log(OpFunction):
 
     def backward(self, grad_output):
         """
-        Retrieves the data in ctx and updates grads
+        Computes the gradient of the logarithm function.
 
         log x d/dx = 1/x
         """
@@ -364,7 +365,7 @@ class SigmoidOp(OpFunction):
 
     def backward(self, grad_output):
         """
-        Retrieves the data in ctx and updates grads
+        Computes the gradient of the sigmoid function.
 
         y = sigmoid(x)
         dy/dx = y * (1 - y)

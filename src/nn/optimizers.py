@@ -13,6 +13,8 @@ class Optimizer():
     """Base class for all optimizers.
     """
     def __init__(self, **kwargs):
+        """Initializes the optimizer with given parameters.
+        """
         for key, value in kwargs.items():
             setattr(self, key, value)
         self.iterations = 0
@@ -24,12 +26,12 @@ class Optimizer():
             param.grad = None
 
 class SGD(Optimizer):
-    def __init__(self, parameters, lr, momentum :float = 0, dampening: float = 0, maximize: bool = False):
+    def __init__(self, parameters, lr:float = 0.001, momentum :float = 0, dampening: float = 0, maximize: bool = False):
         """Stochastic Gradient Descent (SGD) optimizer.
 
         Args:
             parameters (Iterable[Parameter]): The parameters to optimize.
-            lr (float): The learning rate.
+            lr (float, optional): The learning rate. Defaults to 0.001.
             momentum (float, optional): Momentum factor. Defaults to 0.
             dampening (float, optional): Dampening for momentum. Defaults to 0.
             maximize (bool, optional): Whether to maximize the objective. Defaults to False.
@@ -42,7 +44,7 @@ class SGD(Optimizer):
     def step(self):
         """Perform a single optimization step.
 
-        General formula for SGD with or without momentum:
+        General formula for SGD
         upd_t = momentum * upd_(t-1) + (1 - dampening) * g
         param = param - lr * upd  (if minimizing)
         """
@@ -67,7 +69,7 @@ class SGD(Optimizer):
     
 
 class Adam(Optimizer):
-    def __init__(self, parameters, lr = 0.001, beta1= 0.9, beta2 = 0.999, eps=1e-8):
+    def __init__(self, parameters, lr:float = 0.001, beta1:float = 0.9, beta2:float = 0.999, eps:float = 1e-8):
         """Adam optimizer.
 
         Creates m and v vectors for each parameter, with the same shape as the parameter.
@@ -75,10 +77,9 @@ class Adam(Optimizer):
         Args:
             parameters (Iterable[Parameter]): The parameters to optimize.
             lr (float, optional): The learning rate. Defaults to 0.001.
-            betas (tuple, optional): Coefficients for computing running averages of gradient and its square. Defaults to (0.9, 0.999).
-
-        Raises:
-            ValueError: If the betas tuple is not of length 2.
+            beta1 (float, optional): Exponential decay rate for the first moment estimates. Defaults to 0.9.
+            beta2 (float, optional): Exponential decay rate for the second moment estimates. Defaults to 0.999.
+            eps (float, optional): Small constant for numerical stability. Defaults to 1e-8.
         """
         super().__init__(parameters=parameters, lr=lr, beta1=beta1, beta2=beta2, eps=eps)
 

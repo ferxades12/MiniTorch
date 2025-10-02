@@ -1,6 +1,8 @@
 
 class Module:
     def __init__(self):
+        """Base class for all neural networks and layers.
+        """
         self.submodules = []
         self.params = []
 
@@ -11,6 +13,8 @@ class Module:
         raise  NotImplementedError
 
     def parameters(self):
+        """Return the list of all parameters in the module and its submodules.
+        """
         params = self.params
 
         for module in self.submodules:

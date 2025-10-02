@@ -20,6 +20,7 @@ class MSE(Function):
 class CrossEntropy(Function):
     def forward(self, tensor : Tensor, target) -> Tensor:
         """Calculates the Cross-Entropy loss between prediction and target tensors
+        
         Args:
             tensor (Tensor): The predicted logits tensor.
             target (TensorLike): The target tensor, either as class indices or one-hot encoded.

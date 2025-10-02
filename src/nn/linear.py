@@ -25,6 +25,16 @@ class Linear(Module):
             self.bias = None
        
     def forward(self, x:Tensor) -> Tensor:
+        """Applies a linear transformation to the incoming data: y = xW + b
+        Args:
+            x (Tensor): Input tensor of shape (batch_size, in_features)
+        Returns:
+            Tensor: Output tensor of shape (batch_size, out_features)
+
+        Raises:
+            ValueError: If the input tensor's last dimension does not match in_features.
+        """
+
         if x.shape()[-1] != self.weight.shape()[0]:
             raise ValueError("Variable dimensions are not correct")
         

@@ -10,7 +10,7 @@ class Tensor:
         """Creates a new tensor (numpy array wrapper)
 
         Args:
-            data (list, numpy array, etc): data to be stored in the tensor
+            data (array_like): data to be stored in the tensor
             requires_grad (bool, optional): if True, the tensor will track operations for autograd. Defaults to False.
         """
 

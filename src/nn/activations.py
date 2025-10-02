@@ -13,7 +13,7 @@ class ReLU(Function):
         """Applies the ReLU function element-wise using the maximum operation
 
         Args:
-            tensor (any type convertible to Tensor): The input tensor to apply ReLU to.
+            tensor (array_like): The input tensor to apply ReLU to.
 
         Returns:
             Tensor: The resulting tensor after applying the ReLU function.
@@ -26,7 +26,7 @@ class Sigmoid(Function):
         """Applies the sigmoid function element-wise
 
         Args:
-            tensor (any type convertible to Tensor): The input tensor to apply sigmoid to.
+            tensor (array_like): The input tensor to apply sigmoid to.
 
         Returns:
             Tensor: The resulting tensor after applying the sigmoid function.
@@ -40,11 +40,13 @@ class Tanh(Function):
         """Applies the hyperbolic tangent function element-wise using the sigmoid function
 
         Args:
-            tensor (any type convertible to Tensor): The input tensor to apply tanh to.
+            tensor (array_like): The input tensor to apply tanh to.
 
         Returns:
             Tensor: The resulting tensor after applying the tanh function.
         """
+        tensor = tensor if isinstance(tensor, Tensor) else Tensor(tensor)
+
         return 2 * Sigmoid()(2 * tensor) - 1
 
 
@@ -53,7 +55,7 @@ class Softmax(Function):
         """Applies the softmax function to a tensor. Currently only supports 1D tensors
 
         Args:
-            tensor (any type convertible to Tensor): The input tensor to apply softmax to.
+            tensor (array_like): The input tensor to apply softmax to.
         Raises:
             ValueError: If the input tensor is not 1D.
 
