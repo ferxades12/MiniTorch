@@ -1,6 +1,6 @@
 Este proyecto consiste en reescribir las funciones básicas de PyTorch desde cero, utilizando únicamente NumPy. El objetivo es aprender cómo funcionan internamente los tensores, la propagación, y el autograd, entre otros.
 
-🚀 Características
+🚀 Roadmap
 
 Implementación de tensores y operaciones básicas (suma, multiplicación, transposición, etc.) ✅
 
@@ -21,6 +21,19 @@ Model serialization
 Algoritmos de Machine Learning
 
 Ejemplos prácticos: regresión lineal, clasificación simple.
+
+🚬:
+
+Integración de CUDA
+
+Diseño meta + kernel (preparación para Rust)
+
+Backend en Rust
+
+Paralelismo en Rust
+
+Integración de CUDA en Rust
+
 
 📂 Estructura del Proyecto<br>
 ```
