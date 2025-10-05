@@ -22,11 +22,11 @@ class MLP(nn.Module):
         x = self.linear2.forward(x)
         return x
 
-    def parameters(self):
+    """ def parameters(self):
         params = []
         params.extend(self.linear1.parameters())
         params.extend(self.linear2.parameters())
-        return params
+        return params """
 
     def predict(self, x):
         out = self.forward(x)
@@ -50,6 +50,8 @@ def main():
     model = MLP(num_inputs=2, num_hidden=10, num_outputs=2)
     loss = nn.CrossEntropy()
     optimizer = nn.Adam(model.parameters(), lr=0.01)
+    l1 = nn.L1()
+    l2 = nn.L2()
 
     # Entrenamiento
     epochs = 100
@@ -73,6 +75,8 @@ def main():
             # Forward pass
             out = model.forward(xb)
             loss_value = loss.forward(out, yb)
+            #loss_value = l1(loss_value, model)
+            loss_value = l2(loss_value, model)
 
             # Backward pass
             loss_value.backward()
