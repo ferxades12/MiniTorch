@@ -16,6 +16,8 @@ Capas de Redes neuronales: Linear ✅
 
 Regularizacion: L1, L2, dropout ✅
 
+Datasets, Dataloaders, random_split
+
 Model serialization
 
 Algoritmos de Machine Learning

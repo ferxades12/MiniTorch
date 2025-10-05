@@ -2,7 +2,7 @@ from src.base import Function
 from src.tensor import Tensor
 from src.operations import CrossEntropyOp
 
-class MSE(Function):
+class MSELoss(Function):
     def forward(self, prediction : Tensor, target) -> Tensor:
         """Calculates the Mean Squared Error between prediction and target tensors
 
@@ -17,7 +17,7 @@ class MSE(Function):
 
         return ((prediction - target) ** 2).mean()
 
-class CrossEntropy(Function):
+class CrossEntropyLoss(Function):
     def forward(self, tensor : Tensor, target) -> Tensor:
         """Calculates the Cross-Entropy loss between prediction and target tensors
         

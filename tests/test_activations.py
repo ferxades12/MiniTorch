@@ -1,8 +1,7 @@
 import src as M
 import torch
 import pytest
-from src.nn.activations import *
-from src.nn.losses import *
+import src.nn as nn
 import numpy as np
 
 class TestActivations:
@@ -25,12 +24,11 @@ class TestActivations:
     ])
     def test_softmax_1d(self, arr):
         """Test softmax en vectores 1D"""
-        soft = Softmax()
 
         A = M.Tensor(arr, requires_grad=True)
         ta = torch.tensor(arr, dtype=torch.float32, requires_grad=True)
 
-        B = soft(A)
+        B = nn.softmax(A)
         tb = torch.nn.functional.softmax(ta, dim=0)
 
         B.sum().backward()
@@ -49,12 +47,10 @@ class TestActivations:
     ])
     def test_softmax_batch(self, arr):
         """Test softmax aplicado por filas (batch)"""
-        soft = Softmax()
-
         A = M.Tensor(arr, requires_grad=True)
         ta = torch.tensor(arr, dtype=torch.float32, requires_grad=True)
 
-        B = soft(A)  # Debería aplicar softmax por fila
+        B = nn.softmax(A)  # Debería aplicar softmax por fila
         tb = torch.nn.functional.softmax(ta, dim=1)
 
         B.sum().backward()
@@ -73,12 +69,10 @@ class TestActivations:
     ])
     def test_softmax_stability(self, case, arr):
         """Test estabilidad numérica del softmax"""
-        soft = Softmax()
-        
         A = M.Tensor(arr, requires_grad=True)
         ta = torch.tensor(arr, dtype=torch.float32, requires_grad=True)
         
-        B = soft(A)
+        B = nn.softmax(A)
         tb = torch.nn.functional.softmax(ta, dim=1)
         
         # Verificar que no hay overflow/underflow
@@ -96,7 +90,7 @@ class TestActivations:
         """Verifica propiedades matemáticas del softmax"""
         arr = np.random.uniform(-5, 5, (3, 4))
         A = M.Tensor(arr, requires_grad=True)
-        B = Softmax()(A)
+        B = nn.softmax(A)
         
         # Propiedad 1: La suma de cada fila debe ser 1
         if B.numdims() > 1:
@@ -126,12 +120,11 @@ class TestActivations:
     ])
     def test_relu_cases(self, case, arr):
         """Test casos específicos de ReLU"""
-        relu = ReLU()
 
         A = M.Tensor(arr, requires_grad=True)
         ta = torch.tensor(arr, dtype=torch.float32, requires_grad=True)
 
-        B = relu(A)
+        B = nn.relu(A)
         tb = torch.nn.functional.relu(ta)
 
         B.sum().backward()
@@ -144,7 +137,7 @@ class TestActivations:
         """Verifica propiedades de ReLU"""
         arr = np.random.uniform(-10, 10, (5, 5))
         A = M.Tensor(arr, requires_grad=True)
-        B = ReLU()(A)
+        B = nn.relu(A)
         
         # Propiedad 1: ReLU(x) >= 0 para todo x
         assert np.all(B.data >= 0)
@@ -170,12 +163,11 @@ class TestActivations:
     ])
     def test_sigmoid_cases(self, case, arr):
         """Test casos específicos de Sigmoid"""
-        sig = Sigmoid()
 
         A = M.Tensor(arr, requires_grad=True)
         ta = torch.tensor(arr, dtype=torch.float32, requires_grad=True)
 
-        B = sig(A)
+        B = nn.sigmoid(A)
         tb = torch.sigmoid(ta)
 
         B.sum().backward()
@@ -189,7 +181,7 @@ class TestActivations:
         """Verifica que sigmoid esté en [0,1]"""
         arr = np.random.uniform(-100, 100, (5, 5))
         A = M.Tensor(arr, requires_grad=True)
-        B = Sigmoid()(A)
+        B = nn.sigmoid(A)
         
         assert np.all(B.data >= 0)
         assert np.all(B.data <= 1)
@@ -197,14 +189,14 @@ class TestActivations:
         # Test propiedades específicas
         # sigmoid(0) = 0.5
         zero_input = M.Tensor([0], requires_grad=True)
-        zero_output = Sigmoid()(zero_input)
+        zero_output = nn.sigmoid(zero_input)
         assert np.allclose(zero_output.data, 0.5, atol=1e-7)
         
         # sigmoid(-x) = 1 - sigmoid(x)
         x = M.Tensor([2.5], requires_grad=True)
         neg_x = M.Tensor([-2.5], requires_grad=True)
-        sig_x = Sigmoid()(x)
-        sig_neg_x = Sigmoid()(neg_x)
+        sig_x = nn.sigmoid(x)
+        sig_neg_x = nn.sigmoid(neg_x)
         assert np.allclose(sig_neg_x.data, 1 - sig_x.data, atol=1e-6)
 
     # ==================== TANH TESTS ====================
@@ -220,12 +212,11 @@ class TestActivations:
     ])
     def test_tanh_cases(self, case, arr):
         """Test casos específicos de Tanh"""
-        tanh = Tanh()
 
         A = M.Tensor(arr, requires_grad=True)
         ta = torch.tensor(arr, dtype=torch.float32, requires_grad=True)
 
-        B = tanh(A)
+        B = nn.tanh(A)
         tb = torch.tanh(ta)
 
         B.sum().backward()
@@ -239,7 +230,7 @@ class TestActivations:
         """Verifica que tanh esté en [-1,1]"""
         arr = np.random.uniform(-100, 100, (5, 5))
         A = M.Tensor(arr, requires_grad=True)
-        B = Tanh()(A)
+        B = nn.tanh(A)
         
         assert np.all(B.data >= -1)
         assert np.all(B.data <= 1)
@@ -247,14 +238,14 @@ class TestActivations:
         # Test propiedades específicas
         # tanh(0) = 0
         zero_input = M.Tensor([0], requires_grad=True)
-        zero_output = Tanh()(zero_input)
+        zero_output = nn.tanh(zero_input)
         assert np.allclose(zero_output.data, 0, atol=1e-7)
         
         # tanh(-x) = -tanh(x)
         x = M.Tensor([2.5], requires_grad=True)
         neg_x = M.Tensor([-2.5], requires_grad=True)
-        tanh_x = Tanh()(x)
-        tanh_neg_x = Tanh()(neg_x)
+        tanh_x = nn.tanh(x)
+        tanh_neg_x = nn.tanh(neg_x)
         assert np.allclose(tanh_neg_x.data, -tanh_x.data, atol=1e-6)
 
     # ==================== GRADIENTE NUMÉRICO ====================
@@ -265,9 +256,9 @@ class TestActivations:
         
         # Seleccionar activación
         activations = {
-            "sigmoid": Sigmoid(),
-            "tanh": Tanh(),
-            "relu": ReLU()
+            "sigmoid": nn.activations.Sigmoid(),
+            "tanh": nn.activations.Tanh(),
+            "relu": nn.activations.ReLU()
         }
         activation = activations[activation_name]
         
@@ -325,11 +316,6 @@ class TestActivations:
     def test_chain_activations(self, batch_size, features):
         """Test cadena completa de activaciones"""
         np.random.seed(42)
-        
-        tanh = Tanh()
-        sigmoid = Sigmoid()
-        relu = ReLU()
-        softmax = Softmax()
 
         # Variables de entrada
         arr = np.random.uniform(-2, 2, (batch_size, features))
@@ -345,11 +331,11 @@ class TestActivations:
 
         # Forward MiniTorch
         Z1 = A.dot(W1)
-        H1 = tanh(Z1)
+        H1 = nn.tanh(Z1)
         Z2 = H1.dot(W2)
-        H2 = sigmoid(Z2)
-        H3 = relu(H2)
-        Out = softmax(H3)
+        H2 = nn.sigmoid(Z2)
+        H3 = nn.relu(H2)
+        Out = nn.softmax(H3)
         loss = Out.sum()
 
         # Forward PyTorch
@@ -399,9 +385,9 @@ class TestActivations:
         
         # Test todas las activaciones
         activations = [
-            ("sigmoid", Sigmoid(), torch.sigmoid),
-            ("tanh", Tanh(), torch.tanh),
-            ("relu", ReLU(), torch.nn.functional.relu),
+            ("sigmoid", nn.activations.Sigmoid(), torch.sigmoid),
+            ("tanh", nn.activations.Tanh(), torch.tanh),
+            ("relu", nn.activations.ReLU(), torch.nn.functional.relu),
         ]
         
         for name, mini_act, torch_act in activations:

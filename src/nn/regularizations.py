@@ -25,7 +25,7 @@ class Dropout(nn.Module):
         """
         return x._apply_unary_op(DropoutOp, self.p, self.training)
 
-class L1():
+class L1_Reg():
     def __init__(self, l:float = 1e-5):
         """L1 regularization layer.
 
@@ -53,7 +53,7 @@ class L1():
         
         return l1_loss
     
-class L2():
+class L2_Reg():
     def __init__(self, l:float = 1e-5):
         """L2 regularization layer.
         Args:

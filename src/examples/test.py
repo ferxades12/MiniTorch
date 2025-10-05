@@ -1,6 +1,7 @@
 import numpy as np
 from src.tensor import Tensor
 import src.nn as nn
+import src.nn.functional as F
 
 def generate_data(n_samples):
     X = np.random.rand(n_samples, 2)
@@ -48,10 +49,7 @@ def main():
 
     # Modelo
     model = MLP(num_inputs=2, num_hidden=10, num_outputs=2)
-    loss = nn.CrossEntropy()
     optimizer = nn.Adam(model.parameters(), lr=0.01)
-    l1 = nn.L1()
-    l2 = nn.L2()
 
     # Entrenamiento
     epochs = 100
@@ -73,10 +71,10 @@ def main():
             yb = Tensor(y_shuffled.data[i:end_idx])
 
             # Forward pass
-            out = model.forward(xb)
-            loss_value = loss.forward(out, yb)
+            out = model(xb)
+            loss_value = F.CrossEntropy(out, yb)
             #loss_value = l1(loss_value, model)
-            loss_value = l2(loss_value, model)
+            loss_value = F.L2(loss_value, model)
 
             # Backward pass
             loss_value.backward()
