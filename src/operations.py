@@ -470,3 +470,38 @@ class CrossEntropyOp(OpFunction):
         prediction_grad = (s - (target if is_one_hot else target.one_hot(s.shape()[1]))) / prediction.shape()[0]
         
         self._update_grad(prediction, prediction_grad.data * grad_output)
+
+class DropoutOp(OpFunction):
+    def forward(self, x, p: float, training:bool = True):
+        """Calculates
+
+        Args:
+            x (Tensor): Tensor to apply dropout to
+            p (float): probability of a neuron to be shut down
+            training (bool, optional): _description_. Defaults to True.
+
+        Returns:
+            _type_: _description_
+        """
+        if training:
+            mask = np.random.binomial(1, 1 - p, x.shape())
+            result = x.data * mask / (1 - p)
+        else:
+            mask = None
+            result = x.data
+
+        self.ctx = (x, mask, p)
+        return self._result_tensor(result, x.requires_grad)
+    
+    def backward(self, grad_output):
+        """ Computes the gradient of the Dropout operation.
+
+        (Dropout(x, p)) d/dx = mask / (1-p)
+        """
+        x, mask, p = self.ctx
+
+        if mask is None:
+            grad = grad_output
+        else:
+            grad = mask / (1-p) * grad_output
+        self._update_grad(x, grad)
