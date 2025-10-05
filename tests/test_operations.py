@@ -2,8 +2,6 @@ import src as M
 import torch
 import pytest
 import numpy as np
-from src.nn.activations import *
-from src.nn.losses import *
 
 class TestOperations:
     """Test suite para todas las operaciones con casos edge y de error"""

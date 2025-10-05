@@ -1,9 +1,7 @@
 import src as M
 import torch
 import pytest
-from src.nn.activations import *
-from src.nn.losses import *
-from src.nn.optimizers import *
+import src.nn as nn
 import numpy as np
 
 class TestOptimizers:
@@ -61,7 +59,7 @@ class TestOptimizers:
         assert np.allclose(b.grad, tb.grad.numpy(), atol=1e-6)
 
         # Optimizadores
-        optimizer = SGD([x, w, b], lr=lr, momentum=momentum, dampening=dampening, maximize=maximize)
+        optimizer = nn.SGD([x, w, b], lr=lr, momentum=momentum, dampening=dampening, maximize=maximize)
         torch_optimizer = torch.optim.SGD([tx, tw, tb], lr=lr, momentum=momentum, dampening=dampening, maximize=maximize)
 
         # Paso de optimización
@@ -96,7 +94,7 @@ class TestOptimizers:
         tw = torch.tensor(w_data, dtype=torch.float32, requires_grad=True)
         
         # Optimizadores
-        optimizer = SGD([x, w], lr=0.01, momentum=0.9)
+        optimizer = nn.SGD([x, w], lr=0.01, momentum=0.9)
         torch_optimizer = torch.optim.SGD([tx, tw], lr=0.01, momentum=0.9)
         
         # Múltiples pasos
@@ -129,8 +127,8 @@ class TestOptimizers:
         # Caso 1: Gradientes cero
         x = M.Tensor([1.0, 2.0], requires_grad=True)
         x.grad = np.zeros_like(x.data)
-        
-        optimizer = SGD([x], lr=0.1, momentum=0.9)
+
+        optimizer = nn.SGD([x], lr=0.1, momentum=0.9)
         original_data = x.data.copy()
         
         optimizer.step()
@@ -142,7 +140,7 @@ class TestOptimizers:
         y = M.Tensor([3.0, 4.0], requires_grad=True)
         # No asignamos y.grad (queda como None)
         
-        optimizer = SGD([y], lr=0.1)
+        optimizer = nn.SGD([y], lr=0.1)
         original_data = y.data.copy()
         
         optimizer.step()  # No debe fallar
@@ -190,7 +188,7 @@ class TestOptimizers:
         assert np.allclose(w.grad, tw.grad.numpy(), atol=1e-6)
         
         # Optimizadores
-        optimizer = Adam([x, w], lr=lr, beta1=beta1, beta2=beta2, eps=eps)
+        optimizer = nn.Adam([x, w], lr=lr, beta1=beta1, beta2=beta2, eps=eps)
         torch_optimizer = torch.optim.Adam([tx, tw], lr=lr, betas=(beta1, beta2), eps=eps)
         
         # Paso
@@ -222,7 +220,7 @@ class TestOptimizers:
         tw = torch.tensor(w_data, dtype=torch.float32, requires_grad=True)
         
         # Optimizadores
-        optimizer = Adam([x, w], lr=0.001, beta1=0.9, beta2=0.999)
+        optimizer = nn.Adam([x, w], lr=0.001, beta1=0.9, beta2=0.999)
         torch_optimizer = torch.optim.Adam([tx, tw], lr=0.001, betas=(0.9, 0.999))
         
         # Múltiples pasos
@@ -262,7 +260,7 @@ class TestOptimizers:
         x = M.Tensor(x_data, requires_grad=True)
         tx = torch.tensor(x_data, dtype=torch.float32, requires_grad=True)
         
-        optimizer = Adam([x], lr=0.001)
+        optimizer = nn.Adam([x], lr=0.001)
         torch_optimizer = torch.optim.Adam([tx], lr=0.001)
         
         # Primer paso con gradiente constante
@@ -285,7 +283,7 @@ class TestOptimizers:
         x = M.Tensor([1.0, 2.0], requires_grad=True)
         x.grad = np.array([1e-10, 1e-10], dtype=np.float32)
         
-        optimizer = Adam([x], lr=0.001)
+        optimizer = nn.Adam([x], lr=0.001)
         original_data = x.data.copy()
         
         optimizer.step()
@@ -302,7 +300,7 @@ class TestOptimizers:
         y = M.Tensor([1.0, 2.0], requires_grad=True)
         y.grad = np.array([1000.0, 1000.0], dtype=np.float32)
         
-        optimizer = Adam([y], lr=0.001)
+        optimizer = nn.Adam([y], lr=0.001)
         original_data = y.data.copy()
         
         optimizer.step()
@@ -317,7 +315,7 @@ class TestOptimizers:
         z = M.Tensor([1.0, 2.0], requires_grad=True)
         z.grad = np.array([0.0, 0.0], dtype=np.float32)
         
-        optimizer = Adam([z], lr=0.001)
+        optimizer = nn.Adam([z], lr=0.001)
         original_data = z.data.copy()
         
         optimizer.step()
@@ -337,11 +335,11 @@ class TestOptimizers:
         
         # SGD
         x_sgd = M.Tensor(x_data.copy(), requires_grad=True)
-        optimizer_sgd = SGD([x_sgd], lr=0.1)
+        optimizer_sgd = nn.SGD([x_sgd], lr=0.1)
         
         # Adam
         x_adam = M.Tensor(x_data.copy(), requires_grad=True)
-        optimizer_adam = Adam([x_adam], lr=0.1)
+        optimizer_adam = nn.Adam([x_adam], lr=0.1)
         
         # Optimizar hacia el target
         for _ in range(50):

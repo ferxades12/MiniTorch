@@ -1,8 +1,7 @@
 import src as M
 import torch
 import pytest
-from src.nn.activations import *
-from src.nn.losses import *
+import src.nn as nn
 import numpy as np
 
 
@@ -13,11 +12,10 @@ import numpy as np
     (np.random.uniform(-5, 5, 5), np.random.uniform(-5, 5, 5)), # aleatorio
 ])
 def test_mse(pred, target):
-    mse = MSE()
     a = M.Tensor(pred, requires_grad=True)
     b = M.Tensor(target, requires_grad=False)
 
-    loss = mse(a, b)
+    loss = nn.mse(a, b)
     ta = torch.tensor(pred, dtype=torch.float32, requires_grad=True)
     tt = torch.tensor(target, dtype=torch.float32)
 
@@ -35,12 +33,10 @@ def test_mse(pred, target):
     ([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], [[0, 0, 1], [0, 1, 0]]),  # One-hot
 ])
 def test_cross_entropy(pred, target):
-    ce = CrossEntropy()
-
     # MiniTorch
     a = M.Tensor(pred, requires_grad=True)
     b = M.Tensor(target, requires_grad=False)
-    loss = ce(a, b)
+    loss = nn.cross_entropy(a, b)
 
     # PyTorch
     ta = torch.tensor(pred, dtype=torch.float32, requires_grad=True)
@@ -67,9 +63,6 @@ def test_cross_entropy(pred, target):
 ])
 def test_chain(arr):
     # ========= Definición de pérdidas =========
-    mse = MSE()
-    ce = CrossEntropy()
-
     mse_torch = torch.nn.MSELoss()
     ce_torch = torch.nn.CrossEntropyLoss()
 
@@ -89,12 +82,12 @@ def test_chain(arr):
     ttc = torch.tensor(target_classes, dtype=torch.long)
 
     # ========= Forward MSE =========
-    loss_mse = mse(A, T)
+    loss_mse = nn.mse(A, T)
     loss_mse_torch = mse_torch(ta, tt)
 
     # ========= Forward CrossEntropy =========
     # Para CE, interpretamos A como logits (no softmax)
-    loss_ce = ce(A, Tc)
+    loss_ce = nn.cross_entropy(A, Tc)
     loss_ce_torch = ce_torch(ta, ttc)
 
     # ========= Backward =========
