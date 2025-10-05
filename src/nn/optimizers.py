@@ -30,7 +30,7 @@ class SGD(Optimizer):
         """Stochastic Gradient Descent (SGD) optimizer.
 
         Args:
-            parameters (Iterable[Parameter]): The parameters to optimize.
+            parameters (Iterable[Tensor]): The parameters to optimize.
             lr (float, optional): The learning rate. Defaults to 0.001.
             momentum (float, optional): Momentum factor. Defaults to 0.
             dampening (float, optional): Dampening for momentum. Defaults to 0.
@@ -75,7 +75,7 @@ class Adam(Optimizer):
         Creates m and v vectors for each parameter, with the same shape as the parameter.
 
         Args:
-            parameters (Iterable[Parameter]): The parameters to optimize.
+            parameters (Iterable[Tensor]): The parameters to optimize.
             lr (float, optional): The learning rate. Defaults to 0.001.
             beta1 (float, optional): Exponential decay rate for the first moment estimates. Defaults to 0.9.
             beta2 (float, optional): Exponential decay rate for the second moment estimates. Defaults to 0.999.
