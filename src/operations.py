@@ -231,6 +231,19 @@ class Sum(OpFunction):
 
         self._update_grad(tensor, grad)
 
+class Abs(OpFunction):
+    def forward(self, tensor):
+        self.ctx = tensor
+
+        return self._result_tensor(np.abs(tensor.data), tensor.requires_grad)
+    
+    def backward(self, grad_output):
+        tensor = self.ctx
+
+        tensor_grad = np.where(tensor.data > 0, 1, 0)  + np.where(tensor.data < 0, -1, 0)
+        self._update_grad(tensor, tensor_grad * grad_output)
+
+        
 class Transpose(OpFunction):
     def forward(self, tensor):
         """Transposes a tensor.
