@@ -108,7 +108,7 @@ class Tensor:
         if self.numel() != 1 and grad is None:
             raise RuntimeError('grad can be implicitly created only for scalars')
 
-        grad = grad if grad is not None else 1
+        grad = grad if grad is not None else np.ones_like(self.data)
         self.grad_fn.backward(grad)
 
     def shape(self):
