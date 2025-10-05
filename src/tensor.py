@@ -52,6 +52,8 @@ class Tensor:
         return self._apply_unary_op(Transpose)
     def sum(self, axis=None):
         return self._apply_unary_op(Sum, axis)
+    def abs(self):
+        return self._apply_unary_op(Abs)
     def mean(self):
         return self.sum() / self.numel()
     def log(self):

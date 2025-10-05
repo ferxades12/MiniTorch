@@ -340,6 +340,27 @@ class TestOperations:
         assert np.allclose(B.data, tb.detach().numpy(), atol=tolerance)
         assert np.allclose(A.grad, ta.grad.numpy(), atol=tolerance)
 
+    @pytest.mark.parametrize("arr", [
+        [1, -2, 0, 3.5, -4.2],                # valores mixtos
+        [[-1, 2], [-3, 0]],                   # matriz 2x2
+        [[1e-7, -1e7]],                       # extremos
+        [[0]],                                # solo cero
+        np.random.uniform(-100, 100, (10,)),  # vector aleatorio
+    ])
+    def test_abs(self, arr):
+        A = M.Tensor(arr, requires_grad=True)
+        ta = torch.tensor(arr, dtype=torch.float32, requires_grad=True)
+
+        B = A.abs()
+        tb = ta.abs()
+
+        assert np.allclose(B.data, tb.detach().numpy(), atol=1e-6)
+
+        B.sum().backward()
+        tb.sum().backward()
+
+        assert np.allclose(A.grad, ta.grad.numpy(), atol=1e-6)
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
 
