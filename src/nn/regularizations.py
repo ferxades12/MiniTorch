@@ -1,29 +1,5 @@
-import numpy as np
-import src.nn as nn
-from src.operations import DropoutOp
 from src.tensor import Tensor
 
-
-class Dropout(nn.Module):
-    def __init__(self, p:float = 0.5):
-        """Dropout regularization layer.
-
-        Args:
-            p (float, optional): Probability of dropping out a neuron. Defaults to 0.5
-        """
-        super().__init__()
-        self.p = p
-    
-    def forward(self, x:Tensor) -> Tensor:
-        """Applies dropout to the input tensor.
-
-        Args:
-            x (Tensor): Input tensor.
-
-        Returns:
-            Tensor: Output tensor with dropout applied.
-        """
-        return x._apply_unary_op(DropoutOp, self.p, self.training)
 
 class L1_Reg():
     def __init__(self, l:float = 1e-5):

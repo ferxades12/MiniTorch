@@ -72,9 +72,9 @@ def main():
 
             # Forward pass
             out = model(xb)
-            loss_value = F.CrossEntropy(out, yb)
-            #loss_value = l1(loss_value, model)
-            loss_value = F.L2(loss_value, model)
+            loss_value = F.cross_entropy(out, yb)
+            #loss_value = F.l1(loss_value, model)
+            loss_value = F.l2(loss_value, model)
 
             # Backward pass
             loss_value.backward()

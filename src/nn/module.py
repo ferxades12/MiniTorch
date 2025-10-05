@@ -7,6 +7,7 @@ class Module:
         self.submodules = {}
         self.params = []
         self.training: bool = True
+        self.weight = []
 
     def __call__(self, *args):
         return self.forward(*args)

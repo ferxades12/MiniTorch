@@ -1,6 +1,7 @@
 from src.nn.module import Module
 import numpy as np
 from src.tensor import Tensor
+from src.operations import DropoutOp
 
 class Linear(Module):
     def __init__(self, in_features:int, out_features:int, bias:bool=True):
@@ -42,3 +43,24 @@ class Linear(Module):
         bias = self.bias if self.bias is not None else 0
 
         return x.dot(self.weight) + bias
+    
+class Dropout(Module):
+    def __init__(self, p:float = 0.5):
+        """Dropout regularization layer.
+
+        Args:
+            p (float, optional): Probability of dropping out a neuron. Defaults to 0.5
+        """
+        super().__init__()
+        self.p = p
+    
+    def forward(self, x:Tensor) -> Tensor:
+        """Applies dropout to the input tensor.
+
+        Args:
+            x (Tensor): Input tensor.
+
+        Returns:
+            Tensor: Output tensor with dropout applied.
+        """
+        return x._apply_unary_op(DropoutOp, self.p, self.training)

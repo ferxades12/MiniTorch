@@ -1,8 +1,9 @@
-from src.nn.activations import ReLU, Sigmoid, Tanh, Softmax
-from src.nn.losses import MSELoss, CrossEntropyLoss
-from src.nn.regularizations import L1_Reg, L2_Reg
+from src.nn.activations import *
+from src.nn.losses import *
+from src.nn.regularizations import *
+from src.tensor import Tensor
 
-def relu(tensor):
+def relu(tensor) -> Tensor:
     """Applies the ReLU activation function element-wise.
 
     Args:
@@ -12,7 +13,7 @@ def relu(tensor):
     """
     return ReLU()(tensor)
 
-def sigmoid(tensor):
+def sigmoid(tensor) -> Tensor:
     """Applies the sigmoid activation function element-wise.
 
     Args:
@@ -22,7 +23,7 @@ def sigmoid(tensor):
     """
     return Sigmoid()(tensor)
 
-def tanh(tensor):
+def tanh(tensor) -> Tensor:
     """Applies the hyperbolic tangent activation function element-wise.
 
     Args:
@@ -32,7 +33,7 @@ def tanh(tensor):
     """
     return Tanh()(tensor)
 
-def softmax(tensor):
+def softmax(tensor) -> Tensor:
     """Applies the softmax activation function to a tensor. Currently only supports 1D tensors.
 
     Args:
@@ -44,7 +45,7 @@ def softmax(tensor):
     """
     return Softmax()(tensor)
 
-def mse(predictions, targets):
+def mse(predictions, targets) -> Tensor:
     """Computes the Mean Squared Error (MSE) loss between predictions and targets.
 
     Args:
@@ -55,7 +56,7 @@ def mse(predictions, targets):
     """
     return MSELoss()(predictions, targets)
 
-def cross_entropy(predictions, targets):
+def cross_entropy(predictions, targets) -> Tensor:
     """Computes the Cross-Entropy loss between predictions and targets.
 
     Args:
@@ -67,7 +68,7 @@ def cross_entropy(predictions, targets):
     return CrossEntropyLoss()(predictions, targets)
 
 
-def l1(loss, model, l:float = 1e-5):
+def l1(loss, model, l:float = 1e-5) -> Tensor:
     """Applies L1 regularization to the given loss based on the model's weights.
 
     Args:
@@ -79,7 +80,7 @@ def l1(loss, model, l:float = 1e-5):
     """
     return L1_Reg(l)(loss, model)
 
-def l2(loss, model, l:float = 1e-5):
+def l2(loss, model, l:float = 1e-5) -> Tensor:
     """Applies L2 regularization to the given loss based on the model's weights.
 
     Args:
