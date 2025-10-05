@@ -14,12 +14,12 @@ class Linear(Module):
         super().__init__()
         k = np.sqrt(1 / in_features)
         size = (in_features, out_features)
-        self.weight = Tensor(np.random.uniform(-k, k, size), requires_grad=True)
+        self.weight:Tensor = Tensor(np.random.uniform(-k, k, size), requires_grad=True)
 
         self.params.append(self.weight)
 
         if bias:
-            self.bias = Tensor(np.random.uniform(-k, k, out_features), requires_grad=True)
+            self.bias:Tensor = Tensor(np.random.uniform(-k, k, out_features), requires_grad=True)
             self.params.append(self.bias)
         else:
             self.bias = None
