@@ -21,5 +21,13 @@ class Module:
             params.extend(module.parameters())
 
         return params 
+    
+    def get_weights(self):
+        weights = []
+
+        for module in self.modules:
+            weights.extend(module.weight)
+
+        return weights
 
     

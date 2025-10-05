@@ -17,3 +17,17 @@ class Dropout(nn.Module):
     
     def train(self):
         self.training = True
+
+class L1():
+    def __init__(self, l:float = 1e-4):
+        self.l = l
+
+    def __call__(self, *args):
+        return self.forward(*args)
+    
+    def forward(self, loss:float, model):
+        l1_loss = loss
+        for weight in model.get_weights():
+            l1_loss += self.l * weight.abs().sum()
+        
+        return l1_loss
