@@ -16,23 +16,22 @@ Capas de Redes neuronales: Linear, Sequential ✅
 
 Regularizacion: L1, L2, dropout ✅
 
-Datasets, Dataloaders, random_split
+Datasets, Dataloaders, random_split ✅
 
 Model serialization
 
 Algoritmos de Machine Learning
 
-Ejemplos prácticos: regresión lineal, clasificación simple.
+Ejemplos prácticos: clasificación simple ✅
 
 🚬:
-
-Integración de CUDA
-
 Diseño meta + kernel (preparación para Rust)
 
 Backend en Rust
 
 Paralelismo en Rust
+
+Integración de CUDA
 
 Integración de CUDA en Rust
 
