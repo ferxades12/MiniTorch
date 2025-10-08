@@ -1,28 +1,29 @@
-Este proyecto consiste en reescribir las funciones básicas de PyTorch desde cero, utilizando únicamente NumPy. El objetivo es aprender cómo funcionan internamente los tensores, la propagación, y el autograd, entre otros.
+This project consist of implementing Pytorch basic functionality, usin only NumPy (the other libs are for /test module)
+The objective is to learn how neural networks work internally
 
 🚀 Roadmap
 
-Implementación de tensores y operaciones básicas (suma, multiplicación, transposición, etc.) ✅
+Tensor implementation and basic operations (sum, mul, transpose, etc.) ✅
 
-Autograd: cálculo manual del gradiente y backward propagation ✅
+Autograd: manual grad calculation and backward propagation ✅
 
-Funciones de activación: ReLU, Sigmoid, Tanh, Softmax. ✅
+Activation functions: ReLU, Sigmoid, Tanh, Softmax. ✅
 
-Funciones de pérdida: MSE, Cross-Entropy.✅
+Loss functions: MSE, Cross-Entropy.✅
 
-Optimización con Gradient Descent, Adam.✅
+Optimizers: Gradient Descent, Adam.✅
 
-Capas de Redes neuronales: Linear, Sequential ✅
+Neural network layers: Linear, Sequential ✅
 
-Regularizacion: L1, L2, dropout ✅
+Regularizations: L1, L2, dropout ✅
 
 Datasets, Dataloaders, random_split ✅
 
 Model serialization
 
-Algoritmos de Machine Learning
+ML Algorithms
 
-Ejemplos prácticos: clasificación simple ✅
+Practical examples: xor classification ✅
 
 🚬:
 Diseño meta + kernel (preparación para Rust)
@@ -42,28 +43,30 @@ MiniTorch/
 │
 ├── src/
 │ ├── nn/
-│ │ ├── activations.py # Funciones de activación
-│ │ ├── losses.py # Funciones de pérdida
-│ │ └── optimizers.py # Optimizadores (SGD)
-│ ├── tensor.py # Clase Tensor personalizada
-│ └── operations.py # Operaciones básicas (suma, multiplicación, etc.)
+│ │ ├── activations.py # Activation functions
+│ │ ├── losses.py # Loss functions
+│ │ ├── functional.py # Non-class functions
+│ │ ├── layers.py #nn layers
+│ │ ├── regularizations.py
+│ │ └── optimizers.py # optimizers
+│ ├── utils/
+│ │ ├── data.py # Dataloaders, etc.
+│ ├── tensor.py
+│ └── operations.py
 ├── examples/ # Ejemplos de uso
-│ └── linear_regression.py
+│ └── xor_classification.py
 ├── tests/
 ├── README.md
 └── requirements.txt
 ```
-📝 Ejemplo de Uso
 
 
-📌 Como instalarlo
-
-Clonar el repositorio:
+Cloning the repo:
 ```
 git clone <https://github.com/ferxades12/MiniTorch>
 cd <MiniTorch>
 ```
-Crear un entorno virtual (opcional pero recomendado):
+Creating venv (optional but recommended):
 
 ```
 python -m venv venv
@@ -73,7 +76,7 @@ source venv/bin/activate
 venv\Scripts\activate
 ```
 
-Instalar las dependencias:
+Installing dependencies:
 ```
 pip install -r requirements.txt
 ```
