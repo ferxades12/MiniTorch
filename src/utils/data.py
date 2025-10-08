@@ -68,7 +68,10 @@ class Dataloader:
 
         self.current += self.batch_size
 
-        return Tensor(data_batch), Tensor(label_batch)
+        data_batch = Tensor(data_batch, requires_grad=True) if self.dataset.to_tensor else data_batch
+        label_batch = Tensor(label_batch) if self.dataset.target_to_tensor else label_batch
+
+        return data_batch, label_batch
 
 
     def __len__(self):
@@ -92,11 +95,8 @@ def random_split(dataset:Dataset, lengths):
     for length in lengths:
         part = index_list[start: start + length]
 
-        data = [dataset.data[j] for j in part]
-        labels = None
-
-        if dataset.labels is not None:
-            labels = [dataset.labels[j] for j in part]
+        batch = [dataset._getitem(i) for i in part]
+        data, labels = zip(*batch)
 
         subsets.append(Dataset(data, labels=labels, to_tensor=dataset.to_tensor, target_to_tensor=dataset.target_to_tensor))
 

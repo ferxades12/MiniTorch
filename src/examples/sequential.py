@@ -2,6 +2,7 @@ import numpy as np
 from src.tensor import Tensor
 import src.nn as nn
 import src.nn.functional as F
+from src.utils.data import *
 
 def generate_data(n_samples):
     X = np.random.rand(n_samples, 2)
@@ -12,12 +13,11 @@ def generate_data(n_samples):
 
 def main():
     # Generar dataset
-    X_train, y_train = generate_data(n_samples=8000)
-    X_test, y_test = generate_data(n_samples=2000)
-
-    # Convertir a Tensor (solo datos, no gradientes)
-    X_train, y_train = Tensor(X_train), Tensor(y_train.astype(np.int32))
-    X_test, y_test = Tensor(X_test), Tensor(y_test.astype(np.int32))
+    x, y = generate_data(n_samples=10_000)
+    dataset = Dataset(x, y, to_tensor=True)
+    train_data, test_data = random_split(dataset, (0.8, 0.2))
+    train_dataloader = Dataloader(train_data, shuffle=True)
+    test_dataloader = Dataloader(test_data, shuffle= True)
 
     model = nn.Sequential(
         nn.Linear(2, 10),
@@ -29,26 +29,14 @@ def main():
 
     # Entrenamiento
     epochs = 40
-    batch_size = 8
-    n_samples = X_train.shape()[0]
     
     for epoch in range(epochs):
-        # Shuffle data
-        idx = np.random.permutation(n_samples)
-        X_shuffled = Tensor(X_train.data[idx])
-        y_shuffled = Tensor(y_train.data[idx])
-
         epoch_loss = 0
-        n_batches = 0
-        
-        for i in range(0, n_samples, batch_size):
-            end_idx = min(i + batch_size, n_samples)
-            xb = Tensor(X_shuffled.data[i:end_idx], requires_grad=True)
-            yb = Tensor(y_shuffled.data[i:end_idx])
+        for data, lbl in train_dataloader:
 
             # Forward pass
-            out = model(xb)
-            loss_value = F.cross_entropy(out, yb)
+            out = model(data)
+            loss_value = F.cross_entropy(out, lbl)
             #loss_value = F.l1(loss_value, model)
             loss_value = F.l2(loss_value, model)
 
@@ -58,18 +46,22 @@ def main():
             optimizer.zero_grad()
             
             epoch_loss += loss_value.data
-            n_batches += 1
 
         if (epoch+1) % 20 == 0:
-            avg_loss = epoch_loss / n_batches
+            avg_loss = epoch_loss / len(train_dataloader)
             print(f"Epoch {epoch+1}, Loss: {avg_loss:.4f}")
 
     # Evaluación en test
     model.eval()
-    preds = model.predict(X_test)
 
-    acc = np.mean(preds.data == y_test.data)
-    print(f"Test accuracy: {acc*100:.2f}%")
+    acc = 0
+    for data, lbl in test_dataloader:
+        preds = model.predict(data)
+
+        acc += np.mean(preds.data == lbl)
+    
+    print(f"Test accuracy: {acc/ len(test_dataloader)*100:.2f}%")
+    
 
 if __name__ == "__main__":
     main()
