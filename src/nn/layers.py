@@ -64,3 +64,27 @@ class Dropout(Module):
             Tensor: Output tensor with dropout applied.
         """
         return x._apply_unary_op(DropoutOp, self.p, self.training)
+
+
+class Sequential(Module):
+    def __init__(self, *args : Module):
+        super().__init__()
+        
+
+        for module in args:
+            if not isinstance(module, Module):
+                raise ValueError("All arguments must be instances of Module")
+
+            self.submodules.append(module)
+       
+    def forward(self, x:Tensor) -> Tensor:
+        for module in self.submodules:
+            x = module(x)
+        
+        return x
+    
+    def add_module(self, module:Module) -> None:
+        if not isinstance(module, Module):
+            raise ValueError("Argument must be an instance of Module")
+        
+        self.submodules.append(module)

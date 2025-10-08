@@ -12,7 +12,7 @@ Funciones de pérdida: MSE, Cross-Entropy.✅
 
 Optimización con Gradient Descent, Adam.✅
 
-Capas de Redes neuronales: Linear ✅
+Capas de Redes neuronales: Linear, Sequential ✅
 
 Regularizacion: L1, L2, dropout ✅
 
