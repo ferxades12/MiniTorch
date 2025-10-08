@@ -13,6 +13,10 @@ class Dataset():
         self.target_to_tensor = target_to_tensor
 
     def __getitem__(self, index):
+        if isinstance(index, slice):
+            idx = range(*index.indices(len(self)))
+            return [self[i] for i in idx]
+
         data = self.data[index]
         data = Tensor(data) if self.to_tensor else data    
 
@@ -68,7 +72,7 @@ class Dataloader:
 
 
     def __len__(self):
-        int(len(self.dataset) / self.batch_size)
+        return int(len(self.dataset) / self.batch_size)
 
 
 
