@@ -162,9 +162,9 @@ class TestOperations:
         tb = torch.tensor(b, dtype=torch.float32, requires_grad=True)
         
         if should_fail:
-            with pytest.raises((ValueError, RuntimeError)):
+            with pytest.raises((ValueError, RuntimeError, AssertionError)):
                 C = A.dot(B)
-            with pytest.raises((ValueError, RuntimeError)):
+            with pytest.raises((ValueError, RuntimeError, AssertionError)):
                 tc = ta @ tb
         else:
             C = A.dot(B)

@@ -27,8 +27,8 @@ def sum_cpu(A: np.ndarray, axis, out: np.ndarray) -> np.ndarray:
 def abs_cpu(A: np.ndarray, out: np.ndarray) -> np.ndarray:
     return np.absolute(A, out=out)
 
-def transpose_cpu(A: np.ndarray, out: np.ndarray) -> np.ndarray:
-    return np.transpose(A, out=out)
+def transpose_cpu(A: np.ndarray) -> np.ndarray:
+    return np.transpose(A)
 
 def maximum_cpu(A: np.ndarray, B:np.ndarray, out: np.ndarray) -> np.ndarray:
     return np.maximum(A, B, out=out)

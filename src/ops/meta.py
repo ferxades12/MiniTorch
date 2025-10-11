@@ -64,7 +64,7 @@ def add(A, B) -> np.ndarray:
     Returns:
         (np.ndarray): The element-wise sum of A and B.
     """
-    return _dispatch("add", *_prepare_bitwise_op(A, B))
+    return _apply_bitwise_op("add", A, B)
 
 
 def mul(A, B) -> np.ndarray:
@@ -76,7 +76,7 @@ def mul(A, B) -> np.ndarray:
     Returns:
         (np.ndarray): The element-wise product of A and B.
     """
-    return _dispatch("mul", *_prepare_bitwise_op(A, B))
+    return _apply_bitwise_op("mul", A, B)
 
 def sub(A, B) -> np.ndarray:
     """Subtracts two tensors element-wise, supporting broadcasting.
@@ -87,7 +87,7 @@ def sub(A, B) -> np.ndarray:
     Returns:
         (np.ndarray): The element-wise difference of A and B.
     """
-    return _dispatch("sub", *_prepare_bitwise_op(A, B))
+    return _apply_bitwise_op("sub", A, B)
 
 def pow(A, B) -> np.ndarray:
     """Raises each element of A to the power of the corresponding element in B.
@@ -98,7 +98,7 @@ def pow(A, B) -> np.ndarray:
     Returns:
         (np.ndarray): The element-wise power of A raised to B.
     """
-    return _dispatch("pow", *_prepare_bitwise_op(A, B))
+    return _apply_bitwise_op("pow", A, B)
 
 def dot(A, B) -> np.ndarray:
     """Performs a dot product between two 2D tensors
@@ -113,9 +113,23 @@ def dot(A, B) -> np.ndarray:
     a = A.shape()
     b = B.shape()
 
-    assert a[1] == b[0]
+    if A.numdims() == 1 and B.numdims() == 1:
+        assert a[0] == b[0]
+        shape = ()
+    elif A.numdims() == 2 and B.numdims() == 1:
+        assert a[1] == b[0]
+        shape = (a[0],)
 
-    shape = a[0], b[1]
+    elif A.numdims() == 1 and B.numdims() == 2:
+        assert a[0] == b[0]
+        shape = (b[1],)
+
+    elif A.numdims() == 2 and B.numdims() == 2:
+        assert a[1] == b[0]
+        shape = (a[0], b[1])
+
+    else:
+        raise ValueError("Dot product only supports 1D or 2D tensors.")
 
     out = np.empty(shape, dtype=np.result_type(A.data, B.data)) # np.dot is picky with dtypes
 
@@ -130,7 +144,7 @@ def maximum(A, B) -> np.ndarray:
     Returns:
         (np.ndarray): The element-wise maximum of A and B.
     """
-    return _dispatch("maximum", *_prepare_bitwise_op(A,B))
+    return _apply_bitwise_op("maximum", A, B)
 
 def minimum(A, B) -> np.ndarray:
     """Computes the element-wise minimum of two tensors.
@@ -141,7 +155,7 @@ def minimum(A, B) -> np.ndarray:
     Returns:
         (np.ndarray): The element-wise minimum of A and B.
     """
-    return _dispatch("minimum", *_prepare_bitwise_op(A,B))
+    return _apply_bitwise_op("minimum", A, B)
 
 
 def div(A, B) -> np.ndarray:
@@ -153,7 +167,7 @@ def div(A, B) -> np.ndarray:
     Returns:
         (np.ndarray): The element-wise quotient of A and B.
     """
-    return _dispatch("div", *_prepare_bitwise_op(A, B))
+    return _apply_bitwise_op("div", A, B)
 
 
 def sum(A, axis=None) -> np.ndarray:
@@ -168,18 +182,18 @@ def sum(A, axis=None) -> np.ndarray:
     if axis is None:
         out = np.empty(())
     elif isinstance(axis, list):
-        shape = A.shape()
+        shape = list(A.shape())
         
         for ax in axis:
-            shape[ax] = 1
+            shape.pop(ax)
         
         out = np.empty(shape)
     else:
-        shape = A.shape()
-        shape[axis] = 1
+        shape = list(A.shape())
+        shape.pop(axis)
         out = np.empty(shape)
     
-    return _dispatch("sum", A.device, A, axis, out)   
+    return _dispatch("sum", A.device, A.data, axis, out)   
 
 def abs(A) -> np.ndarray:
     """Computes the element-wise absolute value of a tensor.
@@ -189,7 +203,7 @@ def abs(A) -> np.ndarray:
     Returns:
         (np.ndarray): The element-wise absolute value of A.
     """
-    return _dispatch("abs", A.device, A, np.empty_like(A))
+    return _dispatch("abs", A.device, A.data, np.empty_like(A.data))
 
 
 def transpose(A) -> np.ndarray:
@@ -199,8 +213,9 @@ def transpose(A) -> np.ndarray:
         A (Tensor): The input tensor.
     Returns:
         (np.ndarray): The transposed array.
-    """
-    return _dispatch("transpose", A.device, A, (A.shape[1], A.shape[0]))
+    """ 
+
+    return _dispatch("transpose", A.device, A.data)
 
 def log(A) -> np.ndarray:
     """Computes the element-wise natural logarithm of a tensor.
@@ -209,15 +224,16 @@ def log(A) -> np.ndarray:
     Returns:
         (np.ndarray): The element-wise natural logarithm of A.
     """
-    return _dispatch("log", A.device, A, np.empty_like(A))
+    return _dispatch("log", A.device, A.data, np.empty_like(A.data))
 
     
-def _prepare_bitwise_op(A, B) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Checks and prepares two tensors for a bitwise operation.
+def _apply_bitwise_op(op:str, A, B) -> np.ndarray:
+    """Checks and prepares two tensors for a bitwise operation, then applies the operation.
 
     Args:
         A (np.ndarray): The first input array.
         B (np.ndarray): The second input array.
+        op (str): The operation to perform.
 
     Returns:
         (str, np.ndarray, np.ndarray, np.ndarray): The device and the prepared input arrays and the output array.
@@ -232,7 +248,7 @@ def _prepare_bitwise_op(A, B) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
 
     out = np.empty_like(A_data)
 
-    return A.device, A_data, B_data, out
+    return _dispatch(op, A.device, A_data, B_data, out)
 
 
 
