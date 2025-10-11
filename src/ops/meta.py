@@ -1,4 +1,3 @@
-from src.tensor import Tensor
 from src.ops import cpu
 
 """
@@ -13,7 +12,7 @@ dividir si es costosa
 
 
 """
-def add(A:Tensor, B:Tensor) -> Tensor:
+def add(A, B):
     assert A.device == B.device
 
     if A.shape() != B.shape():

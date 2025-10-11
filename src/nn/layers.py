@@ -1,7 +1,7 @@
 from src.nn.module import Module
 import numpy as np
 from src.tensor import Tensor
-from src.operations.operations import DropoutOp
+from src.ops import DropoutOp
 
 class Linear(Module):
     def __init__(self, in_features:int, out_features:int, bias:bool=True):
