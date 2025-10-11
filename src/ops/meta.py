@@ -14,6 +14,28 @@ dividir si es costosa
 
 """
 def add(A, B):
+    A_data, B_data, out = _prepare_bitwise_op(A, B)
+
+    if A.device == "cpu":
+        return cpu.add_cpu(A_data, B_data, out)
+    elif A.device == "cuda":
+        pass
+        # kernels.add_kernel(a, b, out)
+    else:
+        raise NotImplementedError
+
+def mul(A, B):
+    A_data, B_data, out = _prepare_bitwise_op(A, B)
+
+    if A.device == "cpu":
+        return cpu.mul_cpu(A_data, B_data, out)
+    elif A.device == "cuda":
+        pass
+        # kernels.add_kernel(a, b, out)
+    else:
+        raise NotImplementedError
+    
+def _prepare_bitwise_op(A, B):
     assert A.device == B.device
     assert hasattr(A, "grad") and hasattr(B, "grad")
 
@@ -24,13 +46,8 @@ def add(A, B):
 
     out = np.empty_like(A_data)
 
-    if A.device == "cpu":
-        return cpu.add_cpu(A_data, B_data, out)
-    elif A.device == "cuda":
-        pass
-        # kernels.add_kernel(a, b, out)
-    else:
-        raise NotImplementedError
+    return A_data, B_data, out
+
 
 
 def broadcast(A, B):
