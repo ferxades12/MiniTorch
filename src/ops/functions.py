@@ -1,5 +1,6 @@
 import numpy as np
 from src.base import Function
+from src import ops
 
 
 class OpFunction(Function):
@@ -105,7 +106,7 @@ class Add(OpFunction):
         """
         self.ctx = (tensor, other)
 
-        return self._result_tensor(tensor.data + other.data, tensor.requires_grad or other.requires_grad)
+        return self._result_tensor(ops.add(tensor, other), tensor.requires_grad or other.requires_grad)
 
     def backward(self, grad_output):
         """

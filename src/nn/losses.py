@@ -1,6 +1,6 @@
 from src.base import Function
 from src.tensor import Tensor
-from src.operations import CrossEntropyOp
+from src.operations.operations import CrossEntropyOp
 
 class MSELoss(Function):
     def forward(self, prediction : Tensor, target) -> Tensor:

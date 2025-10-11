@@ -1,10 +1,11 @@
-from src.operations import *
+from src.ops.functions import *
 import numpy as np
 
 class Tensor:
-    grad = None
+    grad: np.ndarray
     grad_fn : Function
-    is_leaf = True
+    is_leaf: bool
+    device: str
 
     def __init__(self, data, requires_grad=False):
         """Creates a new tensor (numpy array wrapper)
@@ -16,9 +17,14 @@ class Tensor:
 
         self.data = np.array(data, dtype=np.float32)
         self.requires_grad = requires_grad
+        self.is_leaf = True
 
         if self.requires_grad:
             self.grad = np.zeros(self.data.shape)
+        else:
+            self.grad = None
+
+        self.device = "cpu"
 
     def __str__(self):
         return f"Tensor({self.data})"
@@ -156,6 +162,10 @@ class Tensor:
 
         copy.is_leaf = self.is_leaf
         return copy
+    
+    def empty_like(self, requires_grad:bool = False):
+        return Tensor(np.empty_like(self.data), requires_grad)
+
 
 def maximum(A, B) -> 'Tensor':
     """
@@ -178,3 +188,6 @@ def random(*shape) -> 'Tensor':
     returns a tensor with the given shape, filled with random values from a uniform distribution [0, 1)
     """
     return Tensor(np.random.rand(*shape))
+
+def empty_like(*shape, requires_grad:bool = False ) -> 'Tensor':
+    return Tensor(np.empty_like(*shape), requires_grad)
