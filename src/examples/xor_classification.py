@@ -2,7 +2,8 @@ import numpy as np
 from src.tensor import Tensor
 import src.nn as nn
 import src.nn.functional as F
-from src.utils.data import *
+from src.utils.data import * 
+import time  # Importar el módulo time
 
 def generate_data(n_samples):
     X = np.random.rand(n_samples, 2)
@@ -28,8 +29,9 @@ def main():
     optimizer = nn.Adam(model.parameters(), lr=0.01)
 
     # Entrenamiento
-    epochs = 40
-    
+    epochs = 100
+    start_time = time.time()  # Iniciar medición de tiempo
+
     for epoch in range(epochs):
         epoch_loss = 0
         for data, lbl in train_dataloader:
@@ -37,19 +39,22 @@ def main():
             # Forward pass
             out = model(data)
             loss_value = F.cross_entropy(out, lbl)
-            #loss_value = F.l1(loss_value, model)
+            # loss_value = F.l1(loss_value, model)
             loss_value = F.l2(loss_value, model)
 
             # Backward pass
             loss_value.backward()
             optimizer.step()
             optimizer.zero_grad()
-            
+
             epoch_loss += loss_value.data
 
-        if (epoch+1) % 20 == 0:
+        if (epoch + 1) % 20 == 0:
             avg_loss = epoch_loss / len(train_dataloader)
-            print(f"Epoch {epoch+1}, Loss: {avg_loss:.4f}")
+            print(f"Epoch {epoch + 1}, Loss: {avg_loss:.4f}")
+
+    end_time = time.time()  # Finalizar medición de tiempo
+    print(f"Tiempo total de entrenamiento: {end_time - start_time:.2f} segundos")
 
     # Evaluación en test
     model.eval()
@@ -64,4 +69,41 @@ def main():
     
 
 if __name__ == "__main__":
-    main()
+    for i in range(1):
+        main()
+    #print("Done")
+
+
+# Benchamark 01. No optimizations
+"""
+65.54 segundos
+65.53 segundos
+65.49 segundos
+65.50 segundos
+65.52 segundos
+65.36 segundos
+65.19 segundos
+65.14 segundos
+65.35 segundos
+65.24 segundos
+65.17 segundos
+65.26 segundos
+65.35 segundos
+65.42 segundos
+65.31 segundos
+65.22 segundos
+65.30 segundos
+65.20 segundos
+65.37 segundos
+65.24 segundos
+65.40 segundos
+65.40 segundos
+65.19 segundos
+65.47 segundos
+65.23 segundos
+65.26 segundos
+65.15 segundos
+65.28 segundos
+65.19 segundos
+65.20 segundos
+"""
