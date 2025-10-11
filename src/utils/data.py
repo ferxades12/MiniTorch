@@ -1,8 +1,21 @@
+"""Utility functions for handling datasets and dataloaders."""
+
 from src.tensor import Tensor
 import numpy as np
 
 class Dataset():
     def __init__(self, data, labels=None, to_tensor:bool = False, target_to_tensor:bool = False):
+        """A simple dataset class.
+
+        Args:
+            data (Any): The data of the dataset
+            labels (Any, optional): The labels of the dataset. Defaults to None.
+            to_tensor (bool, optional): Whether to convert the data to tensors. Defaults to False.
+            target_to_tensor (bool, optional): Whether to convert the labels to tensors. Defaults to False.
+
+        Raises:
+            ValueError: If the lengths of data and labels do not match.
+        """
         if labels is not None and len(labels) != len(data):
             raise ValueError("Data and labels have not the same size")
 
@@ -13,6 +26,14 @@ class Dataset():
         self.target_to_tensor = target_to_tensor
 
     def __getitem__(self, index):
+        """Retrieves an item from the dataset.
+
+        Args:
+            index (Union[int, slice]): The index or slice to retrieve from the dataset.
+
+        Returns:
+            Tuple[Tensor, Optional[Tensor]]: The data and labels for the given index.
+        """
         if isinstance(index, slice):
             idx = range(*index.indices(len(self)))
             return [self[i] for i in idx]
@@ -29,6 +50,14 @@ class Dataset():
         return (data, None)
     
     def _getitem(self, index):
+        """Private method to return the item without the transformation.
+
+        Args:
+            index (int): The index to retrieve from the dataset.
+
+        Returns:
+            Tuple[Tensor, Optional[Tensor]]: The data and labels for the given index.
+        """
         data = self.data[index]
 
         if self.labels is not None:
@@ -39,15 +68,32 @@ class Dataset():
         return (data, None)
     
     def __len__(self):
+        """Returns the length of the dataset.
+
+        Returns:
+            (int): The number of samples in the dataset.
+        """
         return len(self.data)
 
 class Dataloader:
     def __init__(self, dataset:Dataset,  batch_size:int = 8, shuffle=True):
+        """A simple dataloader class.
+
+        Args:
+            dataset (Dataset): The dataset to load data from.
+            batch_size (int, optional): The number of samples per batch. Defaults to 8.
+            shuffle (bool, optional): Whether to shuffle the data at the beginning of each epoch. Defaults to True.
+        """
         self.dataset = dataset
         self.batch_size = int(batch_size)
         self.shuffle = bool(shuffle)
 
     def __iter__(self):
+        """Starts an iteration over the dataloader.
+
+        Returns:
+            (Dataloader): The dataloader instance.
+        """
         if self.shuffle:
             self.indices = np.random.permutation(len(self.dataset))
         else:
@@ -58,6 +104,13 @@ class Dataloader:
         return self
     
     def __next__(self):
+        """Retrieves the next batch of data from the dataloader.
+
+        Raises:
+            StopIteration: If there are no more batches to retrieve.
+        Returns:
+            Tuple[Tensor, Optional[Tensor]]: The next batch of data and labels.
+        """
         if self.current >= len(self.dataset):
             raise StopIteration
 
@@ -75,12 +128,25 @@ class Dataloader:
 
 
     def __len__(self):
+        """Returns the number of batches in the dataloader.
+
+        Returns:
+            (int): The number of batches.
+        """
         return int(len(self.dataset) / self.batch_size)
 
 
 
 
 def random_split(dataset:Dataset, lengths):
+    """Splits a dataset into non-overlapping new datasets of given lengths.
+
+    Args:
+        dataset (Dataset): The dataset to split.
+        lengths (list): A list of lengths for the splits.
+    Returns:
+        (list): A list of Dataset objects representing the splits.
+    """
     if sum(lengths) == 1:
         lengths = [int(l * len(dataset)) for l in lengths]
 
@@ -103,9 +169,3 @@ def random_split(dataset:Dataset, lengths):
         start +=length
     
     return subsets
-        
-        
-        
-
-    def __len__(self):
-        return len(self.data)
