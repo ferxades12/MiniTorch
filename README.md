@@ -28,11 +28,11 @@ Practical examples: xor classification ✅
 🚬:
 Diseño meta + kernel (preparación para Rust)
 
+Integración de CUDA (CuPy)
+
 Backend en Rust
 
 Paralelismo en Rust
-
-Integración de CUDA
 
 Integración de CUDA en Rust
 
