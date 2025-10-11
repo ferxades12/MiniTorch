@@ -130,7 +130,7 @@ class Sub(OpFunction):
         """
         self.ctx = (tensor, other)
 
-        return self._result_tensor(tensor.data - other.data, tensor.requires_grad or other.requires_grad)
+        return self._result_tensor(ops.sub(tensor, other), tensor.requires_grad or other.requires_grad)
 
     def backward(self, grad_output):
         """
@@ -152,7 +152,7 @@ class Pow(OpFunction):
             Tensor: The resulting tensor.
         """
 
-        result = self._result_tensor(np.pow(tensor.data, index.data), tensor.requires_grad or index.requires_grad)
+        result = self._result_tensor(ops.pow(tensor, index), tensor.requires_grad or index.requires_grad)
 
         self.ctx = (tensor, index, result.data)
 
@@ -185,7 +185,7 @@ class Dot(OpFunction):
         """
         self.ctx = (tensor, other)
 
-        return self._result_tensor(np.dot(tensor.data, other.data), tensor.requires_grad or other.requires_grad)
+        return self._result_tensor(ops.dot(tensor, other), tensor.requires_grad or other.requires_grad)
 
     def backward(self, grad_output):
         """
@@ -213,7 +213,7 @@ class Sum(OpFunction):
 
         self.ctx = tensor, axis
 
-        return self._result_tensor(np.sum(tensor.data, axis=axis), tensor.requires_grad)
+        return self._result_tensor(ops.sum(tensor, axis=axis), tensor.requires_grad)
 
     def backward(self, grad_output):
         """
@@ -236,7 +236,7 @@ class Abs(OpFunction):
     def forward(self, tensor):
         self.ctx = tensor
 
-        return self._result_tensor(np.abs(tensor.data), tensor.requires_grad)
+        return self._result_tensor(ops.abs(tensor), tensor.requires_grad)
     
     def backward(self, grad_output):
         tensor = self.ctx
@@ -254,7 +254,7 @@ class Transpose(OpFunction):
         """
         self.ctx = tensor
 
-        return self._result_tensor(tensor.data.T, tensor.requires_grad)
+        return self._result_tensor(ops.transpose(tensor), tensor.requires_grad)
 
     def backward(self, grad_output):
         """
@@ -275,7 +275,7 @@ class Maximum(OpFunction):
         """
         self.ctx = (tensor, other)
 
-        return self._result_tensor(np.maximum(tensor.data, other.data), tensor.requires_grad or other.requires_grad)
+        return self._result_tensor(ops.maximum(tensor, other), tensor.requires_grad or other.requires_grad)
 
     def backward(self, grad_output):
         """
@@ -301,7 +301,7 @@ class Minimum(OpFunction):
         """
         self.ctx = (tensor, other)
 
-        return self._result_tensor(np.minimum(tensor.data, other.data), tensor.requires_grad or other.requires_grad)
+        return self._result_tensor(ops.minimum(tensor, other), tensor.requires_grad or other.requires_grad)
 
     def backward(self, grad_output):
         """
@@ -327,7 +327,7 @@ class Div(OpFunction):
         """
         self.ctx = (tensor, other)
 
-        return self._result_tensor(tensor.data / other.data, tensor.requires_grad or other.requires_grad)
+        return self._result_tensor(ops.div(tensor, other), tensor.requires_grad or other.requires_grad)
 
     def backward(self, grad_output):
         """
@@ -350,7 +350,7 @@ class Log(OpFunction):
 
         self.ctx = tensor
 
-        return self._result_tensor(np.log(tensor.data), tensor.requires_grad)
+        return self._result_tensor(ops.log(tensor), tensor.requires_grad)
 
     def backward(self, grad_output):
         """
