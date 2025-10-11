@@ -3,7 +3,7 @@ from src.tensor import Tensor
 import src.nn as nn
 import src.nn.functional as F
 from src.utils.data import * 
-import time  # Importar el módulo time
+import time 
 
 def generate_data(n_samples):
     X = np.random.rand(n_samples, 2)

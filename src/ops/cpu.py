@@ -30,11 +30,11 @@ def abs_cpu(A: np.ndarray, out: np.ndarray) -> np.ndarray:
 def transpose_cpu(A: np.ndarray, out: np.ndarray) -> np.ndarray:
     return np.transpose(A, out=out)
 
-def maximum_cpu(A: np.ndarray, out: np.ndarray) -> np.ndarray:
-    return np.maximum(A, out=out)
+def maximum_cpu(A: np.ndarray, B:np.ndarray, out: np.ndarray) -> np.ndarray:
+    return np.maximum(A, B, out=out)
 
-def minimum_cpu(A: np.ndarray, out: np.ndarray) -> np.ndarray:
-    return np.minimum(A, out=out)
+def minimum_cpu(A: np.ndarray, B:np.ndarray, out: np.ndarray) -> np.ndarray:
+    return np.minimum(A, B, out=out)
 
 def log_cpu(A: np.ndarray, out: np.ndarray) -> np.ndarray:
     return np.log(A, out=out)

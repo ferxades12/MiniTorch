@@ -47,6 +47,10 @@ DISPATCH_TABLE = {
         "cpu" : cpu.log_cpu,
         "gpu" : None
     },
+    "dot":{
+        "cpu" : cpu.dot_cpu,
+        "gpu" : None
+    },
 }
 
 
@@ -105,15 +109,17 @@ def dot(A, B) -> np.ndarray:
     Returns:
         (np.ndarray): The result of the dot product.
     """
+    assert A.device == B.device
     a = A.shape()
     b = B.shape()
 
     assert a[1] == b[0]
 
     shape = a[0], b[1]
-    out = np.empty(shape)
 
-    return _dispatch("dot", A.device, A, B, out)
+    out = np.empty(shape, dtype=np.result_type(A.data, B.data)) # np.dot is picky with dtypes
+
+    return _dispatch("dot", A.device, A.data, B.data, out)
 
 def maximum(A, B) -> np.ndarray:
     """Computes the element-wise maximum of two tensors.
@@ -124,7 +130,7 @@ def maximum(A, B) -> np.ndarray:
     Returns:
         (np.ndarray): The element-wise maximum of A and B.
     """
-    return _dispatch("maximum", A.device, *_prepare_bitwise_op(A,B))
+    return _dispatch("maximum", *_prepare_bitwise_op(A,B))
 
 def minimum(A, B) -> np.ndarray:
     """Computes the element-wise minimum of two tensors.
@@ -135,7 +141,7 @@ def minimum(A, B) -> np.ndarray:
     Returns:
         (np.ndarray): The element-wise minimum of A and B.
     """
-    return _dispatch("minimum", A.device, *_prepare_bitwise_op(A,B))
+    return _dispatch("minimum", *_prepare_bitwise_op(A,B))
 
 
 def div(A, B) -> np.ndarray:
@@ -147,7 +153,7 @@ def div(A, B) -> np.ndarray:
     Returns:
         (np.ndarray): The element-wise quotient of A and B.
     """
-    return _dispatch("div", A.device, *_prepare_bitwise_op(A, B))
+    return _dispatch("div", *_prepare_bitwise_op(A, B))
 
 
 def sum(A, axis=None) -> np.ndarray:
