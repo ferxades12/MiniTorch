@@ -165,7 +165,13 @@ class Tensor:
     
     def empty_like(self, requires_grad:bool = False):
         return Tensor(np.empty_like(self.data), requires_grad)
+    
+    
 
+def stack(tensors, axis=0):
+        tensors = [tensor.data for tensor in tensors]
+
+        return Tensor(np.stack(tensors, axis=axis))
 
 def maximum(A, B) -> 'Tensor':
     """
