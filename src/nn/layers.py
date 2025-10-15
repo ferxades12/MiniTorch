@@ -1,6 +1,6 @@
 from src.nn.module import Module
 import numpy as np
-from src.tensor import Tensor
+from src.tensor import Tensor, stack
 from src.ops import DropoutOp
 from src.nn import Tanh, ReLU
 
@@ -89,14 +89,11 @@ class Sequential(Module):
         
         self.submodules.append(module)
 
-class simple_RNN(Module):
+class RNN(Module):
     """A single-layer RNN where:
     output_size = hidden_size
-        
-        
-       
     """
-    def __init__(self, input_size, hidden_size, nonlinearity="tanh"):
+    def __init__(self, input_size, hidden_size, num_layers=1, nonlinearity="tanh", dropout=0):
         """A single-layer RNN 
 
         Args:
@@ -110,6 +107,13 @@ class simple_RNN(Module):
         super().__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
+        self.num_layers = num_layers
+        self.dropout = dropout
+
+        if dropout == 0:
+            self.dropout_layer = None
+        else:
+            self.dropout_layer = Dropout(dropout)
 
         if nonlinearity == "tanh":
             self.func = Tanh()
@@ -150,7 +154,11 @@ class simple_RNN(Module):
         Wy : (hidden_size, hidden_size)
         by : (hidden_size,)
 
-        
+        ------------------------------------------------------------------------
+
+        For every layer, processes the entire sequence and passes the output to the next layer.
+        The output grows in depth, but the sequence length and batch size remain constant.
+
 
         Args:
             x (Tensor): Input tensor of shape (batch_size, seq_len, input_size).
@@ -163,41 +171,27 @@ class simple_RNN(Module):
             List[Tensor]: List of output tensors for each timestep, each of shape (batch_size, hidden_size).
             Tensor: Final hidden state tensor of shape (batch_size, hidden_size)
         """
- 
 
-class RNN(Module):
-    def __init__(self, input_size, hidden_size, num_layers=1, nonlinearity='tanh', dropout=0):
-        """Multi-layer RNN.
-        Args:
-            input_size (int): Number of input features.
-            hidden_size (int): Number of hidden units.
-            num_layers (int, optional): Number of RNN layers. Defaults to 1.
-            nonlinearity (str, optional): Activation function to use. Defaults to "tanh".
-            dropout (float, optional): Dropout probability between layers. Defaults to 0.
-        """
-        super().__init__()
+        for layer_idx in range(self.num_layers):
 
-        self.num_layers = num_layers
-        self.submodules.append(simple_RNN(input_size, hidden_size, nonlinearity))
+            batch_size, seq_len, input_size = x.shape()
 
-        for i in range(num_layers - 1):
-            self.submodules.append(simple_RNN(hidden_size, hidden_size, nonlinearity))
+            h = [None for _ in range(seq_len + 1)]
+            h[0] = Tensor(np.zeros((batch_size, self.hidden_size)))
 
-            if dropout != 0:
-                self.submodules.append(Dropout(dropout))
+            for t in range(seq_len):
+                x_t = Tensor(x[:, t, :], requires_grad=True)
 
-    def forward(self, x):
-        """Forward pass for the multi-layer RNN.
+                h[t+1] = self.func(x_t.dot(self.Wx) + h[t].dot(self.Wh) + self.bh)
 
-        For every layer, processes the entire sequence and passes the output to the next layer.
-        The output grows in depth, but the sequence length and batch size remain constant.
+                #y_t = self.func(h[t+1].dot(self.Wy) + self.by)
+            
+            x = stack(h[1:])
 
-        Args:
-            x (Tensor): Input tensor of shape (batch_size, seq_len, input_size).
+            if self.dropout_layer != None and layer_idx != self.num_layers - 1:
+                x = self.dropout_layer(x)
 
-        Returns:
-            List[Tensor]: List of output tensors for each layer.
-        """
+        return x, h[-1]
 
 
 

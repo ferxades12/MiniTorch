@@ -107,3 +107,5 @@ if __name__ == "__main__":
 65.19 segundos
 65.20 segundos
 """
+
+# PyTorch ~27s
