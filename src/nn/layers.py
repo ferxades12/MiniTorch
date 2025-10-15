@@ -177,7 +177,7 @@ class RNN(Module):
             batch_size, seq_len, input_size = x.shape()
 
             h = [None for _ in range(seq_len + 1)]
-            h[0] = Tensor(np.zeros((batch_size, self.hidden_size)))
+            h[0] = Tensor(np.zeros((batch_size, self.hidden_size)), requires_grad=True)
 
             for t in range(seq_len):
                 x_t = Tensor(x[:, t, :], requires_grad=True)
@@ -197,5 +197,5 @@ class RNN(Module):
 
 
 
-def _initialize_parameter(size, k):
+def _initialize_parameter(k, size):
     return Tensor(np.random.uniform(-1 * k, k, size), requires_grad=True)
