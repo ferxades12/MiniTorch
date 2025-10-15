@@ -13,7 +13,7 @@ Loss functions: MSE, Cross-Entropy.✅
 
 Optimizers: Gradient Descent, Adam.✅
 
-Neural network layers: Linear, Sequential ✅
+Neural network layers: Linear, Sequential, RNN ✅
 
 Regularizations: L1, L2, dropout ✅
 
