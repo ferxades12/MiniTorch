@@ -4,11 +4,11 @@ Standard activation functions for MiniTorch.
 
 import src as M
 from src.tensor import Tensor
-import src.nn as nn
+from src.nn.module import Module
 from src.ops import SigmoidOp, SoftmaxOp
 
 
-class ReLU(nn.Module):
+class ReLU(Module):
     def forward(self, tensor) -> Tensor:
         """Applies the ReLU function element-wise using the maximum operation
 
@@ -21,7 +21,7 @@ class ReLU(nn.Module):
         return M.maximum(tensor, 0)
 
 
-class Sigmoid(nn.Module):
+class Sigmoid(Module):
     def forward(self, tensor) -> Tensor:
         """Applies the sigmoid function element-wise
 
@@ -35,7 +35,7 @@ class Sigmoid(nn.Module):
         return tensor._apply_unary_op(SigmoidOp)
 
 
-class Tanh(nn.Module):
+class Tanh(Module):
     def forward(self, tensor) -> Tensor:
         """Applies the hyperbolic tangent function element-wise using the sigmoid function
 
@@ -50,7 +50,7 @@ class Tanh(nn.Module):
         return 2 * Sigmoid()(2 * tensor) - 1
 
 
-class Softmax(nn.Module):
+class Softmax(Module):
     def forward(self, tensor) -> Tensor:
         """Applies the softmax function to a tensor. Currently only supports 1D tensors
 
