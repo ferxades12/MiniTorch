@@ -6,6 +6,7 @@ import src as M
 from src.tensor import Tensor
 import src.nn as nn
 from src.operations import SigmoidOp, SoftmaxOp
+from src.nn.module import Module
 
 
 class ReLU(Module):
