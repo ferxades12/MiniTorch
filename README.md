@@ -1,82 +1,77 @@
 This project consist of implementing Pytorch basic functionality, usin only NumPy (the other libs are for /test module)
 The objective is to learn how neural networks work internally
 
-🚀 Roadmap
+## 🚀 Roadmap
 
-Tensor implementation and basic operations (sum, mul, transpose, etc.) ✅
+- Tensor implementation and basic operations (sum, mul, transpose, etc.) ✅
+- Autograd: manual grad calculation and backward propagation ✅
+- Activation functions: ReLU, Sigmoid, Tanh, Softmax ✅
+- Loss functions: MSE, Cross-Entropy ✅
+- Optimizers: Gradient Descent, Adam ✅
+- Neural network layers: Linear, Sequential, RNN ✅
+- Regularizations: L1, L2, dropout ✅
+- Datasets, Dataloaders, random_split ✅
+- Practical examples: xor classification, RNN ✅
+- Meta + Kernel architecture (preparation for Rust/CUDA) ✅
+- Model serialization 
+- ML Algorithms 
 
-Autograd: manual grad calculation and backward propagation ✅
+## 🚬:
 
-Activation functions: ReLU, Sigmoid, Tanh, Softmax. ✅
-
-Loss functions: MSE, Cross-Entropy.✅
-
-Optimizers: Gradient Descent, Adam.✅
-
-Neural network layers: Linear, Sequential, RNN ✅
-
-Regularizations: L1, L2, dropout ✅
-
-Datasets, Dataloaders, random_split ✅
-
-Model serialization
-
-ML Algorithms
-
-Practical examples: xor classification ✅
-
-🚬:
-Diseño meta + kernel (preparación para Rust)
-
-Integración de CUDA (CuPy)
-
-Backend en Rust
-
-Paralelismo en Rust
-
-Integración de CUDA en Rust
+- Meta + kernel design (preparation for Rust) ✅
+- CUDA integration (CuPy) 
+- Rust backend 
+- Rust parallelism 
+- CUDA integration in Rust 
 
 
-📂 Estructura del Proyecto<br>
+
+## 📂 Project Structure<br>
 ```
 MiniTorch/
 │
 ├── src/
+│ ├── ops/                   
+│ │ ├── autograd.py          # Operation classes with forward/backward
+│ │ ├── dispatch.py          # Dispatch system and meta logic
+│ │ ├── cpu.py               # Pure CPU kernels (NumPy)
+│ │ └── cuda.py              # GPU kernels
 │ ├── nn/
-│ │ ├── activations.py # Activation functions
-│ │ ├── losses.py # Loss functions
-│ │ ├── functional.py # Non-class functions
-│ │ ├── layers.py #nn layers
-│ │ ├── regularizations.py
-│ │ └── optimizers.py # optimizers
+│ │ ├── activations.py       # Activation functions (ReLU, Sigmoid, Tanh, Softmax)
+│ │ ├── losses.py            # Loss functions (MSE, CrossEntropy)
+│ │ ├── functional.py        # Non-class functions (wrappers)
+│ │ ├── layers.py            # Network layers (Linear, Sequential, RNN, Dropout)
+│ │ ├── regularizations.py   # L1, L2
+│ │ ├── optimizers.py        # SGD, Adam
+│ │ └── module.py            # Module base class
 │ ├── utils/
-│ │ ├── data.py # Dataloaders, etc.
-│ ├── tensor.py
-│ └── operations.py
-├── examples/ # Ejemplos de uso
-│ └── xor_classification.py
-├── tests/
+│ │ └── data.py              # Dataset, DataLoader, random_split
+│ ├── base.py                # Function base class for autograd
+│ └── tensor.py              # Tensor class with autograd
+├── examples/                 # Usage examples
 ├── README.md
 └── requirements.txt
 ```
 
 
-Cloning the repo:
-```
-git clone <https://github.com/ferxades12/MiniTorch>
-cd <MiniTorch>
-```
-Creating venv (optional but recommended):
+## Installation
 
+Clone the repository:
+```bash
+git clone https://github.com/ferxades12/MiniTorch
+cd MiniTorch
 ```
+
+Create virtual environment (optional but recommended):
+```bash
 python -m venv venv
-# En Linux/macOS
+# On Linux/macOS
 source venv/bin/activate
-# En Windows
+# On Windows
 venv\Scripts\activate
 ```
 
-Installing dependencies:
-```
+Install dependencies:
+```bash
 pip install -r requirements.txt
 ```

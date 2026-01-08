@@ -1,6 +1,6 @@
 import numpy as np
 from src.base import Function
-from src import ops
+from src.ops import dispatch
 
 
 class OpFunction(Function):
@@ -83,7 +83,7 @@ class Mul(OpFunction):
         """
         self.ctx = (tensor, other)
 
-        return self._result_tensor(ops.mul(tensor, other), tensor.requires_grad or other.requires_grad)
+        return self._result_tensor(dispatch._apply_bitwise_op("mul", tensor, other), tensor.requires_grad or other.requires_grad)
 
     def backward(self, grad_output):
         """
@@ -106,7 +106,7 @@ class Add(OpFunction):
         """
         self.ctx = (tensor, other)
 
-        return self._result_tensor(ops.add(tensor, other), tensor.requires_grad or other.requires_grad)
+        return self._result_tensor(dispatch._apply_bitwise_op("add", tensor, other), tensor.requires_grad or other.requires_grad)
 
     def backward(self, grad_output):
         """
@@ -130,7 +130,7 @@ class Sub(OpFunction):
         """
         self.ctx = (tensor, other)
 
-        return self._result_tensor(ops.sub(tensor, other), tensor.requires_grad or other.requires_grad)
+        return self._result_tensor(dispatch._apply_bitwise_op("sub", tensor, other), tensor.requires_grad or other.requires_grad)
 
     def backward(self, grad_output):
         """
@@ -152,7 +152,7 @@ class Pow(OpFunction):
             Tensor: The resulting tensor.
         """
 
-        result = self._result_tensor(ops.pow(tensor, index), tensor.requires_grad or index.requires_grad)
+        result = self._result_tensor(dispatch._apply_bitwise_op("pow", tensor, index), tensor.requires_grad or index.requires_grad)
 
         self.ctx = (tensor, index, result.data)
 
@@ -185,7 +185,7 @@ class Dot(OpFunction):
         """
         self.ctx = (tensor, other)
 
-        return self._result_tensor(ops.dot(tensor, other), tensor.requires_grad or other.requires_grad)
+        return self._result_tensor(dispatch._apply_dot(tensor, other), tensor.requires_grad or other.requires_grad)
 
     def backward(self, grad_output):
         """
@@ -213,7 +213,7 @@ class Sum(OpFunction):
 
         self.ctx = tensor, axis
 
-        return self._result_tensor(ops.sum(tensor, axis=axis), tensor.requires_grad)
+        return self._result_tensor(dispatch._apply_sum(tensor, axis=axis), tensor.requires_grad)
 
     def backward(self, grad_output):
         """
@@ -236,7 +236,7 @@ class Abs(OpFunction):
     def forward(self, tensor):
         self.ctx = tensor
 
-        return self._result_tensor(ops.abs(tensor), tensor.requires_grad)
+        return self._result_tensor(dispatch._apply_unary_op("abs", tensor), tensor.requires_grad)
     
     def backward(self, grad_output):
         tensor = self.ctx
@@ -254,7 +254,7 @@ class Transpose(OpFunction):
         """
         self.ctx = tensor
 
-        return self._result_tensor(ops.transpose(tensor), tensor.requires_grad)
+        return self._result_tensor(dispatch._apply_transpose(tensor), tensor.requires_grad)
 
     def backward(self, grad_output):
         """
@@ -275,7 +275,7 @@ class Maximum(OpFunction):
         """
         self.ctx = (tensor, other)
 
-        return self._result_tensor(ops.maximum(tensor, other), tensor.requires_grad or other.requires_grad)
+        return self._result_tensor(dispatch._apply_bitwise_op("maximum", tensor, other), tensor.requires_grad or other.requires_grad)
 
     def backward(self, grad_output):
         """
@@ -301,7 +301,7 @@ class Minimum(OpFunction):
         """
         self.ctx = (tensor, other)
 
-        return self._result_tensor(ops.minimum(tensor, other), tensor.requires_grad or other.requires_grad)
+        return self._result_tensor(dispatch._apply_bitwise_op("minimum", tensor, other), tensor.requires_grad or other.requires_grad)
 
     def backward(self, grad_output):
         """
@@ -327,7 +327,7 @@ class Div(OpFunction):
         """
         self.ctx = (tensor, other)
 
-        return self._result_tensor(ops.div(tensor, other), tensor.requires_grad or other.requires_grad)
+        return self._result_tensor(dispatch._apply_bitwise_op("div", tensor, other), tensor.requires_grad or other.requires_grad)
 
     def backward(self, grad_output):
         """
@@ -350,7 +350,7 @@ class Log(OpFunction):
 
         self.ctx = tensor
 
-        return self._result_tensor(ops.log(tensor), tensor.requires_grad)
+        return self._result_tensor(dispatch._apply_unary_op("log", tensor), tensor.requires_grad)
 
     def backward(self, grad_output):
         """
@@ -372,7 +372,7 @@ class SigmoidOp(OpFunction):
         Returns:
             Tensor: The resulting tensor.
         """
-        sigmoid = 1 / (1 + np.exp(-1 * tensor.data))
+        sigmoid = dispatch._apply_unary_op("sigmoid", tensor)
         self.ctx = (tensor, sigmoid)
 
         return self._result_tensor(sigmoid, tensor.requires_grad)
@@ -398,12 +398,7 @@ class SoftmaxOp(OpFunction):
         Returns:
             Tensor: The resulting tensor.
         """ 
-        axis = None if tensor.numdims() == 1 else 1
-
-        t_stable = tensor.data - np.max(tensor.data, axis=axis, keepdims=True) # Normalize to avoid overflow
-
-        exps = np.exp(t_stable)
-        softmax = exps / np.sum(exps, axis=axis, keepdims=True)
+        softmax = dispatch._apply_softmax(tensor)
         
         self.ctx = (tensor, softmax)
 
@@ -453,23 +448,18 @@ class CrossEntropyOp(OpFunction):
             Tensor: The resulting scalar tensor after calculating the Cross-Entropy loss.
         """
         
-        s = SoftmaxOp()(prediction.copy())
+        s = SoftmaxOp().forward(prediction.copy())
 
-        if target.shape() == s.shape():
+        if target.shape() == prediction.shape():
             # Target is one-hot
             self.ctx = (prediction, s, target, True)
 
-            result = -1 * (target * s.log()).sum(axis=1).mean().data
-            
-
+            result = dispatch._apply_cross_entropy_one_hot(s, target)
         else:
             # Target is a vector
             self.ctx = (prediction, s, target, False)
 
-            # np.arange(len(target.data)), target.data.astype(int)] = [i, target[i]] with i = 1,...,len(target.data)
-            result = s[np.arange(len(target.data)), target.data.astype(int)]
-            result = -1 * np.log(result)
-            result = np.mean(result)
+            result = dispatch._apply_cross_entropy_indices(s, target)
         
         return self._result_tensor(result, prediction.requires_grad)
     

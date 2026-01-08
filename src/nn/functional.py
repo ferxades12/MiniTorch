@@ -54,7 +54,7 @@ def mse(predictions, targets) -> Tensor:
     Returns:
         Tensor: The computed MSE loss.
     """
-    return MSELoss()(predictions, targets)
+    return MSELoss().forward(predictions, targets)
 
 def cross_entropy(predictions, targets) -> Tensor:
     """Computes the Cross-Entropy loss between predictions and targets.
@@ -65,7 +65,7 @@ def cross_entropy(predictions, targets) -> Tensor:
     Returns:
         Tensor: The computed Cross-Entropy loss.
     """
-    return CrossEntropyLoss()(predictions, targets)
+    return CrossEntropyLoss().forward(predictions, targets)
 
 
 def l1(loss, model, l:float = 1e-5) -> Tensor:

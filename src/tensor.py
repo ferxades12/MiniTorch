@@ -1,4 +1,4 @@
-from src.ops.functions import *
+from src.ops.autograd import *
 import numpy as np
 
 class Tensor:
@@ -80,9 +80,9 @@ class Tensor:
         op = op()
 
         if reverse:
-            result = op(other, self)
+            result = op.forward(other, self)
         else:
-            result = op(self, other)
+            result = op.forward(self, other)
 
         if self.requires_grad:
             result.grad_fn = op
@@ -99,7 +99,7 @@ class Tensor:
 
         op = op()
 
-        result = op(self, *args)
+        result = op.forward(self, *args)
 
         if self.requires_grad:
             result.grad_fn = op
