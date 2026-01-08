@@ -40,6 +40,7 @@ class SGD(Optimizer):
 
         self.updates = [np.zeros_like(p.data) for p in parameters]
         if momentum == 0: self.dampening = 0
+        self.direction = 1 if maximize else -1
 
     def step(self):
         """Perform a single optimization step.
@@ -59,10 +60,7 @@ class SGD(Optimizer):
             else:
                 self.updates[i] = self.momentum * self.updates[i] + (1 - self.dampening) * g
             
-            if self.maximize:
-                param.data = param.data + self.lr * self.updates[i]
-            else:
-                param.data = param.data - self.lr * self.updates[i]
+            param.data += self.lr * self.direction * self.updates[i]
             
         self.iterations += 1
     
@@ -94,6 +92,12 @@ class Adam(Optimizer):
         """
         self.iterations += 1
 
+        bias_correction1 = 1 - self.beta1 ** self.iterations
+        bias_correction2 = 1 - self.beta2 ** self.iterations
+
+        step_size = self.lr * (np.sqrt(bias_correction2) / bias_correction1) # Calcular factores constantes
+        eps_corrected = self.eps * np.sqrt(bias_correction2)  
+
         for i, param in enumerate(self.parameters):
             if param.grad is None: continue
 
@@ -103,11 +107,6 @@ class Adam(Optimizer):
             self.m[i] = self.beta1 * self.m[i] + (1 - self.beta1) * g
             self.v[i] = self.beta2 * self.v[i] + (1 - self.beta2) * g**2
 
-            # Correcting the bias
-            m_unbiased = self.m[i] / (1 - self.beta1 ** self.iterations)
-            v_unbiased = self.v[i] / (1 - self.beta2 ** self.iterations)
-
             # Update parameters
-            value = param.data - self.lr * m_unbiased / (np.sqrt(v_unbiased) + self.eps)
+            param.data -= step_size * self.m[i] / (np.sqrt(self.v[i]) + eps_corrected)
 
-            param.data = value

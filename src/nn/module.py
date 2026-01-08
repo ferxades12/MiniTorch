@@ -36,7 +36,10 @@ class Module:
         weights = []
 
         for module in self.submodules:
-            weights.extend(module.weight)
+            if isinstance(module.weight, Tensor):
+                weights.append(module.weight)
+            elif isinstance(module.weight, list):
+                weights.extend(module.weight)
 
         return weights
     

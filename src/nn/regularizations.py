@@ -23,11 +23,9 @@ class L1_Reg():
         Returns:
             Tensor: The loss tensor with L1 regularization added.
         """
-        l1_loss = loss
-        for weight in model.get_weights():
-            l1_loss += self.l * weight.abs().sum()
-        
-        return l1_loss
+        l1_penalty = sum(p.abs().sum() for p in model.get_weights() if p.numdims() > 1) # No se aplica a bias
+
+        return loss + self.l * l1_penalty
     
 class L2_Reg():
     def __init__(self, l:float = 1e-5):
@@ -48,8 +46,6 @@ class L2_Reg():
         Returns:
             Tensor: The loss tensor with L2 regularization added.
         """
-        l2_loss = loss
-        for weight in model.get_weights():
-            l2_loss += self.l * (weight**2).sum()
+        l2_penalty = sum((p**2).sum() for p in model.get_weights() if p.numdims() > 1) # No se aplica a bias
 
-        return l2_loss
+        return loss + self.l * l2_penalty
