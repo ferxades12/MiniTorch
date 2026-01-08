@@ -40,6 +40,8 @@ class Tensor:
         return self._apply_binary_op(Mul, other, reverse = True)
     def __add__(self, other):
         return self._apply_binary_op(Add, other)
+    def __radd__(self, other):
+        return self._apply_binary_op(Add, other, reverse=True)
     def __pow__(self, index):
         return self._apply_binary_op(Pow, index)
     def __rpow__(self, base):
