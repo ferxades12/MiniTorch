@@ -45,6 +45,15 @@ class Tensor:
         else:
             self.grad = None
 
+    @property
+    def xp(self):
+        """Returns the appropriate array library (numpy or cupy) based on the device.
+        
+        Returns:
+            module: cp (cupy) if device is 'cuda', otherwise np (numpy).
+        """
+        return cp if self.device == "cuda" else np
+
     def __str__(self):
         return f"Tensor({self.data}, device='{self.device}')"
     def __repr__(self):
@@ -135,8 +144,7 @@ class Tensor:
         if self.numel() != 1 and grad is None:
             raise RuntimeError('grad can be implicitly created only for scalars')
 
-        xp = cp if self.device == "cuda" else np
-        grad = grad if grad is not None else xp.ones_like(self.data)
+        grad = grad if grad is not None else self.xp.ones_like(self.data)
         self.grad_fn.backward(grad)
 
     def shape(self):
@@ -169,7 +177,7 @@ class Tensor:
         if self.numdims() != 1:
             raise ValueError("one_hot es solo para vectores")
 
-        xp = cp if self.device == "cuda" else np
+        xp = self.xp
         one_hot = xp.zeros((self.shape()[0], length))
         one_hot[xp.arange(len(self.data)), self.data.astype(int)] = 1
 
@@ -187,8 +195,7 @@ class Tensor:
         return copy
     
     def empty_like(self, requires_grad:bool = False):
-        xp = cp if self.device == "cuda" else np
-        return Tensor(xp.empty_like(self.data), requires_grad, device=self.device)
+        return Tensor(self.xp.empty_like(self.data), requires_grad, device=self.device)
     
     def cpu(self) -> 'Tensor':
         """Move tensor to CPU"""

@@ -83,7 +83,7 @@ def _apply_bitwise_op(op:str, A, B) -> np.ndarray:
         np.ndarray: The result of the operation.
     """
     assert A.device == B.device
-    xp = cp if A.device == "cuda" else np
+    xp = A.xp
 
     if A.shape != B.shape:
         A_data, B_data = _broadcast(A.data, B.data, xp)
@@ -106,9 +106,8 @@ def _apply_unary_op(op:str, A, out=None) -> np.ndarray:
     Returns:
         np.ndarray: The result of the operation.
     """
-    xp = cp if A.device == "cuda" else np
     if out is None:
-        out = xp.empty_like(A.data)
+        out = A.xp.empty_like(A.data)
     return _dispatch(op, A.device, A.data, out)
 
 
@@ -156,7 +155,7 @@ def _apply_sum(A, axis=None) -> np.ndarray:
     Returns:
         np.ndarray: The sum of the elements.
     """
-    xp = cp if A.device == "cuda" else np
+    xp = A.xp
     if axis is None:
         out = xp.empty(())
     elif isinstance(axis, list):
@@ -193,12 +192,11 @@ def _apply_softmax(A) -> np.ndarray:
     Returns:
         np.ndarray: The softmax result.
     """
-    xp = cp if A.device == "cuda" else np
     # Meta: determinar axis según dimensiones
     axis = None if A.numdims() == 1 else 1
     
     # Allocate output
-    out = xp.empty_like(A.data)
+    out = A.xp.empty_like(A.data)
     
     # Dispatch al kernel con axis
     return _dispatch("softmax", A.device, A.data, axis, out)

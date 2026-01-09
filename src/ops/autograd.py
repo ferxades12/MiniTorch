@@ -170,7 +170,7 @@ class Pow(OpFunction):
         a^x d/dx = a^x * ln(a)
         """
         tensor, index, result = self.ctx
-        xp = cp if tensor.device == "cuda" else np
+        xp = tensor.xp
 
         tensor_grad = index.data * (xp.power(tensor.data, (index.data - 1))) * grad_output
 
@@ -200,7 +200,7 @@ class Dot(OpFunction):
         """
 
         tensor, other = self.ctx
-        xp = cp if tensor.device == "cuda" else np
+        xp = tensor.xp
 
         tensor_grad = xp.dot(grad_output, other.data.T)
         other_grad = xp.dot(tensor.data.T, grad_output)
@@ -227,7 +227,7 @@ class Sum(OpFunction):
         (sum(x)) d/dx = np.ones(x.shape)
         """
         tensor, ax = self.ctx
-        xp = cp if tensor.device == "cuda" else np
+        xp = tensor.xp
 
         if ax is None:
             grad = xp.ones(tensor.shape()) * grad_output
@@ -245,7 +245,7 @@ class Abs(OpFunction):
     
     def backward(self, grad_output):
         tensor = self.ctx
-        xp = cp if tensor.device == "cuda" else np
+        xp = tensor.xp
 
         tensor_grad = xp.where(tensor.data > 0, 1, 0)  + xp.where(tensor.data < 0, -1, 0)
         self._update_grad(tensor, tensor_grad * grad_output)
@@ -419,7 +419,7 @@ class SoftmaxOp(OpFunction):
         dL/dx = (diag(s) - s @ s.T) * dL/ds
         """
         tensor, s = self.ctx
-        xp = cp if tensor.device == "cuda" else np
+        xp = tensor.xp
 
         if tensor.numdims() == 1:
             # Case 1D: Calculates the gradient directly
@@ -494,10 +494,9 @@ class DropoutOp(OpFunction):
         Returns:
             _type_: _description_
         """
-        xp = cp if x.device == "cuda" else np
         
         if training:
-            mask = xp.random.binomial(1, 1 - p, x.shape())
+            mask = x.xp.random.binomial(1, 1 - p, x.shape())
             result = x.data * mask / (1 - p)
         else:
             mask = None
