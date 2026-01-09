@@ -1,6 +1,12 @@
 from src.ops.autograd import *
 import numpy as np
-import cupy as cp
+
+try:
+    import cupy as cp
+    CUDA_AVAILABLE = True
+except ImportError:
+    cp = None
+    CUDA_AVAILABLE = False
 
 class Tensor:
     grad: np.ndarray
@@ -18,14 +24,16 @@ class Tensor:
         """
 
         # Data type handling
-        if not isinstance(data, (cp.ndarray, np.ndarray)):
+        if CUDA_AVAILABLE and not isinstance(data, (cp.ndarray, np.ndarray)):
+            data = np.array(data, dtype=np.float32)
+        elif not CUDA_AVAILABLE and not isinstance(data, np.ndarray):
             data = np.array(data, dtype=np.float32)
 
         # Device handling
         if device == "cuda":
             self.data = cp.asarray(data)
         elif device == "cpu":
-            if isinstance(data, cp.ndarray):
+            if CUDA_AVAILABLE and isinstance(data, cp.ndarray):
                 self.data = cp.asnumpy(data)
             else:
                 self.data = data
@@ -105,7 +113,7 @@ class Tensor:
 
         reverse changes order (useful to rmul-like ops)
         """
-        other = other if isinstance(other, Tensor) else Tensor(other)
+        other = other if isinstance(other, Tensor) else Tensor(other, device=self.device)
 
         op = op()
 
@@ -205,6 +213,8 @@ class Tensor:
             return Tensor(cp.asnumpy(self.data), self.requires_grad, device="cpu")
     
     def cuda(self) -> 'Tensor':
+        if not CUDA_AVAILABLE:
+            raise RuntimeError("CUDA requested but CuPy is not installed. Install cupy to use CUDA.")
         if self.device == "cuda":
             return self
         else:
@@ -212,7 +222,7 @@ class Tensor:
     
     @property # Tratarlo como un atributo
     def device(self):
-        return "cuda" if isinstance(self.data, cp.ndarray) else "cpu"
+        return "cpu" if isinstance(self.data, np.ndarray) else "cuda"
     
 
 def stack(tensors, axis=0):

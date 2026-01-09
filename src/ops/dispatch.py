@@ -1,6 +1,12 @@
 from src.ops import cpu, cuda
 import numpy as np
-import cupy as cp
+
+try:
+    import cupy as cp
+    CUDA_AVAILABLE = True
+except ImportError:
+    cp = None
+    CUDA_AVAILABLE = False
 
 """ Dispatch table for operations """
 DISPATCH_TABLE = {
@@ -122,6 +128,7 @@ def _apply_dot(A, B) -> np.ndarray:
         np.ndarray: The result of the dot product.
     """
     assert A.device == B.device
+    xp = A.xp
     a = A.shape()
     b = B.shape()
 
@@ -140,7 +147,7 @@ def _apply_dot(A, B) -> np.ndarray:
     else:
         raise ValueError("Dot product only supports 1D or 2D tensors.")
 
-    out = np.empty(shape, dtype=np.result_type(A.data, B.data)) # np.dot is picky with dtypes
+    out = xp.empty(shape, dtype=xp.result_type(A.data, B.data)) # np.dot is picky with dtypes
 
     return _dispatch("dot", A.device, A.data, B.data, out)
 

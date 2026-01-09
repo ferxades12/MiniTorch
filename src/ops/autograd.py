@@ -1,5 +1,10 @@
 import numpy as np
-import cupy as cp
+try:
+    import cupy as cp
+    CUDA_AVAILABLE = True
+except ImportError:
+    cp = None
+    CUDA_AVAILABLE = False
 from src.base import Function
 from src.ops import dispatch
 
@@ -26,8 +31,6 @@ class OpFunction(Function):
                 grad = self._unbroadcast(grad, tensor.shape())
 
             if tensor.is_leaf:
-                print(tensor.grad)
-                print(grad)
                 tensor.grad = tensor.grad + grad if tensor.grad is not None else grad
             else:
                 tensor.grad_fn.backward(grad)
