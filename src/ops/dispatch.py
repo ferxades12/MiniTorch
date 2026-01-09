@@ -1,71 +1,72 @@
-from src.ops import cpu
+from src.ops import cpu, cuda
 import numpy as np
+import cupy as cp
 
 """ Dispatch table for operations """
 DISPATCH_TABLE = {
     "add":{
         "cpu" : cpu.add_cpu,
-        "cuda" : None
+        "cuda" : cuda.add_cuda
     },
     "mul":{
         "cpu" : cpu.mul_cpu,
-        "cuda" : None
+        "cuda" : cuda.mul_cuda
     },
     "sub":{
         "cpu" : cpu.sub_cpu,
-        "cuda" : None
+        "cuda" : cuda.sub_cuda
     },
     "pow":{
         "cpu" : cpu.pow_cpu,
-        "cuda" : None
+        "cuda" : cuda.pow_cuda
     },
     "div":{
         "cpu" : cpu.div_cpu,
-        "cuda" : None
+        "cuda" : cuda.div_cuda
     },
     "sum":{
         "cpu" : cpu.sum_cpu,
-        "cuda" : None
+        "cuda" : cuda.sum_cuda
     },
     "abs":{
         "cpu" : cpu.abs_cpu,
-        "cuda" : None
+        "cuda" : cuda.abs_cuda
     },
     "transpose":{
         "cpu" : cpu.transpose_cpu,
-        "cuda" : None
+        "cuda" : cuda.transpose_cuda
     },
     "maximum":{
         "cpu" : cpu.maximum_cpu,
-        "cuda" : None
+        "cuda" : cuda.maximum_cuda
     },
     "minimum":{
         "cpu" : cpu.minimum_cpu,
-        "cuda" : None
+        "cuda" : cuda.minimum_cuda
     },
     "log":{
         "cpu" : cpu.log_cpu,
-        "cuda" : None
+        "cuda" : cuda.log_cuda
     },
     "dot":{
         "cpu" : cpu.dot_cpu,
-        "cuda" : None
+        "cuda" : cuda.dot_cuda
     },
     "sigmoid":{
         "cpu" : cpu.sigmoid_cpu,
-        "cuda" : None
+        "cuda" : cuda.sigmoid_cuda
     },
     "softmax":{
         "cpu" : cpu.softmax_cpu,
-        "cuda" : None
+        "cuda" : cuda.softmax_cuda
     },
     "cross_entropy_one_hot":{
         "cpu" : cpu.cross_entropy_one_hot_cpu,
-        "cuda" : None
+        "cuda" : cuda.cross_entropy_one_hot_cuda
     },
     "cross_entropy_indices":{
         "cpu" : cpu.cross_entropy_indices_cpu,
-        "cuda" : None
+        "cuda" : cuda.cross_entropy_indices_cuda
     },
 }
 
@@ -82,13 +83,14 @@ def _apply_bitwise_op(op:str, A, B) -> np.ndarray:
         np.ndarray: The result of the operation.
     """
     assert A.device == B.device
+    xp = cp if A.device == "cuda" else np
 
     if A.shape != B.shape:
-        A_data, B_data = _broadcast(A.data, B.data)
+        A_data, B_data = _broadcast(A.data, B.data, xp)
     else:
         A_data, B_data = A.data, B.data
 
-    out = np.empty_like(A_data)
+    out = xp.empty_like(A_data)
 
     return _dispatch(op, A.device, A_data, B_data, out)
 
@@ -104,8 +106,9 @@ def _apply_unary_op(op:str, A, out=None) -> np.ndarray:
     Returns:
         np.ndarray: The result of the operation.
     """
+    xp = cp if A.device == "cuda" else np
     if out is None:
-        out = np.empty_like(A.data)
+        out = xp.empty_like(A.data)
     return _dispatch(op, A.device, A.data, out)
 
 
@@ -153,17 +156,18 @@ def _apply_sum(A, axis=None) -> np.ndarray:
     Returns:
         np.ndarray: The sum of the elements.
     """
+    xp = cp if A.device == "cuda" else np
     if axis is None:
-        out = np.empty(())
+        out = xp.empty(())
     elif isinstance(axis, list):
         shape = list(A.shape())
         for ax in axis:
             shape.pop(ax)
-        out = np.empty(shape)
+        out = xp.empty(shape)
     else:
         shape = list(A.shape())
         shape.pop(axis)
-        out = np.empty(shape)
+        out = xp.empty(shape)
     
     return _dispatch("sum", A.device, A.data, axis, out)
 
@@ -189,11 +193,12 @@ def _apply_softmax(A) -> np.ndarray:
     Returns:
         np.ndarray: The softmax result.
     """
+    xp = cp if A.device == "cuda" else np
     # Meta: determinar axis según dimensiones
     axis = None if A.numdims() == 1 else 1
     
     # Allocate output
-    out = np.empty_like(A.data)
+    out = xp.empty_like(A.data)
     
     # Dispatch al kernel con axis
     return _dispatch("softmax", A.device, A.data, axis, out)
@@ -246,7 +251,7 @@ def _dispatch(op:str, device:str, *args) -> np.ndarray:
     return DISPATCH_TABLE[op][device](*args)
 
 
-def _broadcast(A: np.ndarray, B: np.ndarray) -> tuple[np.ndarray, np.ndarray]: #TODO mover a utils
+def _broadcast(A: np.ndarray, B: np.ndarray, xp) -> tuple[np.ndarray, np.ndarray]: #TODO mover a utils
     """Broadcasts two arrays to a common shape.
     Args:
         A (np.ndarray): First array.
@@ -254,6 +259,6 @@ def _broadcast(A: np.ndarray, B: np.ndarray) -> tuple[np.ndarray, np.ndarray]: #
     Returns:
         (np.ndarray, np.ndarray): The broadcasted arrays.
     """
-    shape = np.broadcast_shapes(A.shape, B.shape)
+    shape = xp.broadcast_shapes(A.shape, B.shape)
 
-    return np.broadcast_to(A, shape), np.broadcast_to(B, shape)
+    return xp.broadcast_to(A, shape), xp.broadcast_to(B, shape)

@@ -1,4 +1,5 @@
 import numpy as np
+import cupy as cp
 from src.base import Function
 from src.ops import dispatch
 
@@ -25,11 +26,13 @@ class OpFunction(Function):
                 grad = self._unbroadcast(grad, tensor.shape())
 
             if tensor.is_leaf:
+                print(tensor.grad)
+                print(grad)
                 tensor.grad = tensor.grad + grad if tensor.grad is not None else grad
             else:
                 tensor.grad_fn.backward(grad)
 
-    def _result_tensor(self, value : np.ndarray, requires_grad: bool):
+    def _result_tensor(self, value : np.ndarray, requires_grad: bool, device: str = "cpu"):
         """Creates a Tensor with the values provided
         This function is called in the forward method of each operation, 
         so the resulting tensor is not a leaf
@@ -37,6 +40,7 @@ class OpFunction(Function):
         Args:
             value (np.ndarray): The data for the resulting tensor.
             requires_grad (bool): Whether the resulting tensor requires gradients.
+            device (str): Device to create the tensor on ('cpu' or 'cuda').
 
         Returns:
             Tensor: The resulting tensor.
@@ -44,7 +48,7 @@ class OpFunction(Function):
 
         from src.tensor import Tensor
     
-        result = Tensor(value, requires_grad=requires_grad)
+        result = Tensor(value, requires_grad=requires_grad, device=device)
         result.is_leaf = False
 
         return result
@@ -83,7 +87,7 @@ class Mul(OpFunction):
         """
         self.ctx = (tensor, other)
 
-        return self._result_tensor(dispatch._apply_bitwise_op("mul", tensor, other), tensor.requires_grad or other.requires_grad)
+        return self._result_tensor(dispatch._apply_bitwise_op("mul", tensor, other), tensor.requires_grad or other.requires_grad, tensor.device)
 
     def backward(self, grad_output):
         """
@@ -106,7 +110,7 @@ class Add(OpFunction):
         """
         self.ctx = (tensor, other)
 
-        return self._result_tensor(dispatch._apply_bitwise_op("add", tensor, other), tensor.requires_grad or other.requires_grad)
+        return self._result_tensor(dispatch._apply_bitwise_op("add", tensor, other), tensor.requires_grad or other.requires_grad, tensor.device)
 
     def backward(self, grad_output):
         """
@@ -130,7 +134,7 @@ class Sub(OpFunction):
         """
         self.ctx = (tensor, other)
 
-        return self._result_tensor(dispatch._apply_bitwise_op("sub", tensor, other), tensor.requires_grad or other.requires_grad)
+        return self._result_tensor(dispatch._apply_bitwise_op("sub", tensor, other), tensor.requires_grad or other.requires_grad, tensor.device)
 
     def backward(self, grad_output):
         """
@@ -152,7 +156,7 @@ class Pow(OpFunction):
             Tensor: The resulting tensor.
         """
 
-        result = self._result_tensor(dispatch._apply_bitwise_op("pow", tensor, index), tensor.requires_grad or index.requires_grad)
+        result = self._result_tensor(dispatch._apply_bitwise_op("pow", tensor, index), tensor.requires_grad or index.requires_grad, tensor.device)
 
         self.ctx = (tensor, index, result.data)
 
@@ -165,13 +169,13 @@ class Pow(OpFunction):
         x^a d/dx = a * x^(a-1)
         a^x d/dx = a^x * ln(a)
         """
-
         tensor, index, result = self.ctx
+        xp = cp if tensor.device == "cuda" else np
 
-        tensor_grad = index.data * (np.pow(tensor.data, (index.data - 1))) * grad_output
+        tensor_grad = index.data * (xp.power(tensor.data, (index.data - 1))) * grad_output
 
-        safe_data = np.where(tensor.data <= 0, 1e-10, tensor.data)
-        index_grad = result * np.log(safe_data) * grad_output
+        safe_data = xp.where(tensor.data <= 0, 1e-10, tensor.data)
+        index_grad = result * xp.log(safe_data) * grad_output
 
         self._update_grad(tensor, tensor_grad)
         self._update_grad(index, index_grad)
@@ -185,7 +189,7 @@ class Dot(OpFunction):
         """
         self.ctx = (tensor, other)
 
-        return self._result_tensor(dispatch._apply_dot(tensor, other), tensor.requires_grad or other.requires_grad)
+        return self._result_tensor(dispatch._apply_dot(tensor, other), tensor.requires_grad or other.requires_grad, tensor.device)
 
     def backward(self, grad_output):
         """
@@ -196,9 +200,10 @@ class Dot(OpFunction):
         """
 
         tensor, other = self.ctx
+        xp = cp if tensor.device == "cuda" else np
 
-        tensor_grad = np.dot(grad_output, other.data.T)
-        other_grad = np.dot(tensor.data.T, grad_output)
+        tensor_grad = xp.dot(grad_output, other.data.T)
+        other_grad = xp.dot(tensor.data.T, grad_output)
 
         self._update_grad(tensor, tensor_grad)
         self._update_grad(other, other_grad)
@@ -213,7 +218,7 @@ class Sum(OpFunction):
 
         self.ctx = tensor, axis
 
-        return self._result_tensor(dispatch._apply_sum(tensor, axis=axis), tensor.requires_grad)
+        return self._result_tensor(dispatch._apply_sum(tensor, axis=axis), tensor.requires_grad, tensor.device)
 
     def backward(self, grad_output):
         """
@@ -222,26 +227,27 @@ class Sum(OpFunction):
         (sum(x)) d/dx = np.ones(x.shape)
         """
         tensor, ax = self.ctx
+        xp = cp if tensor.device == "cuda" else np
 
         if ax is None:
-            grad = np.ones(tensor.shape()) * grad_output
+            grad = xp.ones(tensor.shape()) * grad_output
         else:
             # Expand dims to match the original tensor shape
-            grad = np.expand_dims(grad_output, axis=ax)
-            grad = np.broadcast_to(grad, tensor.shape())
-
+            grad = xp.expand_dims(grad_output, axis=ax)
+            grad = xp.broadcast_to(grad, tensor.shape())
         self._update_grad(tensor, grad)
 
 class Abs(OpFunction):
     def forward(self, tensor):
         self.ctx = tensor
 
-        return self._result_tensor(dispatch._apply_unary_op("abs", tensor), tensor.requires_grad)
+        return self._result_tensor(dispatch._apply_unary_op("abs", tensor), tensor.requires_grad, tensor.device)
     
     def backward(self, grad_output):
         tensor = self.ctx
+        xp = cp if tensor.device == "cuda" else np
 
-        tensor_grad = np.where(tensor.data > 0, 1, 0)  + np.where(tensor.data < 0, -1, 0)
+        tensor_grad = xp.where(tensor.data > 0, 1, 0)  + xp.where(tensor.data < 0, -1, 0)
         self._update_grad(tensor, tensor_grad * grad_output)
 
         
@@ -254,7 +260,7 @@ class Transpose(OpFunction):
         """
         self.ctx = tensor
 
-        return self._result_tensor(dispatch._apply_transpose(tensor), tensor.requires_grad)
+        return self._result_tensor(dispatch._apply_transpose(tensor), tensor.requires_grad, tensor.device)
 
     def backward(self, grad_output):
         """
@@ -275,7 +281,7 @@ class Maximum(OpFunction):
         """
         self.ctx = (tensor, other)
 
-        return self._result_tensor(dispatch._apply_bitwise_op("maximum", tensor, other), tensor.requires_grad or other.requires_grad)
+        return self._result_tensor(dispatch._apply_bitwise_op("maximum", tensor, other), tensor.requires_grad or other.requires_grad, tensor.device)
 
     def backward(self, grad_output):
         """
@@ -301,7 +307,7 @@ class Minimum(OpFunction):
         """
         self.ctx = (tensor, other)
 
-        return self._result_tensor(dispatch._apply_bitwise_op("minimum", tensor, other), tensor.requires_grad or other.requires_grad)
+        return self._result_tensor(dispatch._apply_bitwise_op("minimum", tensor, other), tensor.requires_grad or other.requires_grad, tensor.device)
 
     def backward(self, grad_output):
         """
@@ -327,7 +333,7 @@ class Div(OpFunction):
         """
         self.ctx = (tensor, other)
 
-        return self._result_tensor(dispatch._apply_bitwise_op("div", tensor, other), tensor.requires_grad or other.requires_grad)
+        return self._result_tensor(dispatch._apply_bitwise_op("div", tensor, other), tensor.requires_grad or other.requires_grad, tensor.device)
 
     def backward(self, grad_output):
         """
@@ -350,7 +356,7 @@ class Log(OpFunction):
 
         self.ctx = tensor
 
-        return self._result_tensor(dispatch._apply_unary_op("log", tensor), tensor.requires_grad)
+        return self._result_tensor(dispatch._apply_unary_op("log", tensor), tensor.requires_grad, tensor.device)
 
     def backward(self, grad_output):
         """
@@ -375,7 +381,7 @@ class SigmoidOp(OpFunction):
         sigmoid = dispatch._apply_unary_op("sigmoid", tensor)
         self.ctx = (tensor, sigmoid)
 
-        return self._result_tensor(sigmoid, tensor.requires_grad)
+        return self._result_tensor(sigmoid, tensor.requires_grad, tensor.device)
 
     def backward(self, grad_output):
         """
@@ -402,7 +408,7 @@ class SoftmaxOp(OpFunction):
         
         self.ctx = (tensor, softmax)
 
-        return self._result_tensor(softmax, tensor.requires_grad)
+        return self._result_tensor(softmax, tensor.requires_grad, tensor.device)
 
 
     def backward(self, grad_output):
@@ -413,17 +419,18 @@ class SoftmaxOp(OpFunction):
         dL/dx = (diag(s) - s @ s.T) * dL/ds
         """
         tensor, s = self.ctx
+        xp = cp if tensor.device == "cuda" else np
 
         if tensor.numdims() == 1:
             # Case 1D: Calculates the gradient directly
             s = s.reshape(-1, 1)  
-            tensor_grad = np.dot(np.diagflat(s) - np.dot(s, s.T), grad_output)
+            tensor_grad = xp.dot(xp.diagflat(s) - xp.dot(s, s.T), grad_output)
         else:
             # Otherwise: Calculates the gradient row by row
-            tensor_grad = np.zeros_like(tensor.data)
+            tensor_grad = xp.zeros_like(tensor.data)
             for i in range(len(tensor.data)):
                 si = s[i].reshape(-1, 1)  
-                tensor_grad[i] = np.dot(np.diagflat(si) - np.dot(si, si.T), grad_output[i])
+                tensor_grad[i] = xp.dot(xp.diagflat(si) - xp.dot(si, si.T), grad_output[i])
 
         self._update_grad(tensor, tensor_grad)
 
@@ -461,7 +468,7 @@ class CrossEntropyOp(OpFunction):
 
             result = dispatch._apply_cross_entropy_indices(s, target)
         
-        return self._result_tensor(result, prediction.requires_grad)
+        return self._result_tensor(result, prediction.requires_grad, prediction.device)
     
     def backward(self, grad_output):
         """Computes the gradient of the Cross-Entropy loss.
@@ -487,15 +494,17 @@ class DropoutOp(OpFunction):
         Returns:
             _type_: _description_
         """
+        xp = cp if x.device == "cuda" else np
+        
         if training:
-            mask = np.random.binomial(1, 1 - p, x.shape())
+            mask = xp.random.binomial(1, 1 - p, x.shape())
             result = x.data * mask / (1 - p)
         else:
             mask = None
             result = x.data
 
         self.ctx = (x, mask, p)
-        return self._result_tensor(result, x.requires_grad)
+        return self._result_tensor(result, x.requires_grad, x.device)
     
     def backward(self, grad_output):
         """ Computes the gradient of the Dropout operation.
