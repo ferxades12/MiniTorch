@@ -5,67 +5,67 @@ import numpy as np
 DISPATCH_TABLE = {
     "add":{
         "cpu" : cpu.add_cpu,
-        "gpu" : None
+        "cuda" : None
     },
     "mul":{
         "cpu" : cpu.mul_cpu,
-        "gpu" : None
+        "cuda" : None
     },
     "sub":{
         "cpu" : cpu.sub_cpu,
-        "gpu" : None
+        "cuda" : None
     },
     "pow":{
         "cpu" : cpu.pow_cpu,
-        "gpu" : None
+        "cuda" : None
     },
     "div":{
         "cpu" : cpu.div_cpu,
-        "gpu" : None
+        "cuda" : None
     },
     "sum":{
         "cpu" : cpu.sum_cpu,
-        "gpu" : None
+        "cuda" : None
     },
     "abs":{
         "cpu" : cpu.abs_cpu,
-        "gpu" : None
+        "cuda" : None
     },
     "transpose":{
         "cpu" : cpu.transpose_cpu,
-        "gpu" : None
+        "cuda" : None
     },
     "maximum":{
         "cpu" : cpu.maximum_cpu,
-        "gpu" : None
+        "cuda" : None
     },
     "minimum":{
         "cpu" : cpu.minimum_cpu,
-        "gpu" : None
+        "cuda" : None
     },
     "log":{
         "cpu" : cpu.log_cpu,
-        "gpu" : None
+        "cuda" : None
     },
     "dot":{
         "cpu" : cpu.dot_cpu,
-        "gpu" : None
+        "cuda" : None
     },
     "sigmoid":{
         "cpu" : cpu.sigmoid_cpu,
-        "gpu" : None
+        "cuda" : None
     },
     "softmax":{
         "cpu" : cpu.softmax_cpu,
-        "gpu" : None
+        "cuda" : None
     },
     "cross_entropy_one_hot":{
         "cpu" : cpu.cross_entropy_one_hot_cpu,
-        "gpu" : None
+        "cuda" : None
     },
     "cross_entropy_indices":{
         "cpu" : cpu.cross_entropy_indices_cpu,
-        "gpu" : None
+        "cuda" : None
     },
 }
 
@@ -240,8 +240,8 @@ def _dispatch(op:str, device:str, *args) -> np.ndarray:
         (np.ndarray): The result of the dispatched operation.
     """
 
-    if device not in DISPATCH_TABLE[op]:
-        raise NotImplementedError(f"Operation {op} no supported on device {device}")
+    if device not in DISPATCH_TABLE[op] or DISPATCH_TABLE[op][device] is None:
+        raise NotImplementedError(f"Operation '{op}' not supported on device '{device}'")
 
     return DISPATCH_TABLE[op][device](*args)
 
