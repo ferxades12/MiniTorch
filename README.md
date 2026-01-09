@@ -75,3 +75,12 @@ Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
+
+## GPU Support (CUDA)
+
+If you want to use GPU acceleration with CUDA, you'll need to install CuPy separately along with NVIDIA CUDA Toolkit. CuPy is not included in requirements.txt as it requires specific NVIDIA drivers and CUDA versions. Visit [CuPy installation guide](https://docs.cupy.dev/en/stable/install.html) for detailed instructions.
+
+```bash
+# Example for CUDA 13.x
+pip install cupy-cuda13x
+```
