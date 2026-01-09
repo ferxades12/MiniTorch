@@ -1,5 +1,6 @@
 from src.ops.autograd import *
 import numpy as np
+import cupy as cp
 
 class Tensor:
     grad: np.ndarray
@@ -7,29 +8,47 @@ class Tensor:
     is_leaf: bool
     device: str
 
-    def __init__(self, data, requires_grad=False):
+    def __init__(self, data, requires_grad=False, device="cpu"):
         """Creates a new tensor (numpy array wrapper)
 
         Args:
             data (array_like): data to be stored in the tensor
             requires_grad (bool, optional): if True, the tensor will track operations for autograd. Defaults to False.
+            device (str, optional): Device to store the tensor on ('cpu' or 'cuda'). Defaults to 'cpu'.
         """
 
-        self.data = np.array(data, dtype=np.float32)
+        # Data type handling
+        if not isinstance(data, (cp.ndarray, np.ndarray)):
+            data = np.array(data, dtype=np.float32)
+
+        # Device handling
+        if device == "cuda":
+            self.data = cp.asarray(data)
+        elif device == "cpu":
+            if isinstance(data, cp.ndarray):
+                self.data = cp.asnumpy(data)
+            else:
+                self.data = data
+        else:
+            raise ValueError("device must be 'cpu' or 'cuda'")
+        
+        # Tensor attributes
         self.requires_grad = requires_grad
         self.is_leaf = True
 
+        # Grad initialization
         if self.requires_grad:
-            self.grad = np.zeros(self.data.shape)
+            if device == "cuda":
+                self.grad = cp.zeros(self.data.shape, dtype=cp.float32)
+            else:
+                self.grad = np.zeros(self.data.shape, dtype=np.float32)
         else:
             self.grad = None
 
-        self.device = "cpu"
-
     def __str__(self):
-        return f"Tensor({self.data})"
-    def __rep__(self):
-        return f"Tensor({self.data})"
+        return f"Tensor({self.data}, device='{self.device}')"
+    def __repr__(self):
+        return f"Tensor({self.data}, device='{self.device}')"
     def __getitem__(self, index):
         return self.data[index]
     def __setitem__(self, index, item):
@@ -116,7 +135,8 @@ class Tensor:
         if self.numel() != 1 and grad is None:
             raise RuntimeError('grad can be implicitly created only for scalars')
 
-        grad = grad if grad is not None else np.ones_like(self.data)
+        xp = cp if self.device == "cuda" else np
+        grad = grad if grad is not None else xp.ones_like(self.data)
         self.grad_fn.backward(grad)
 
     def shape(self):
@@ -138,7 +158,7 @@ class Tensor:
         return len(self.shape())
     
     def reshape(self, dims) -> 'Tensor':
-        reshaped = Tensor(self.data.reshape(dims), self.requires_grad)
+        reshaped = Tensor(self.data.reshape(dims), self.requires_grad, device=self.device)
 
         if self.requires_grad and self.grad is not None:
             reshaped.grad = self.grad.reshape(dims)
@@ -149,15 +169,16 @@ class Tensor:
         if self.numdims() != 1:
             raise ValueError("one_hot es solo para vectores")
 
-        one_hot = np.zeros((self.shape()[0], length))
-        one_hot[np.arange(len(self.data)), self.data.astype(int)] = 1
+        xp = cp if self.device == "cuda" else np
+        one_hot = xp.zeros((self.shape()[0], length))
+        one_hot[xp.arange(len(self.data)), self.data.astype(int)] = 1
 
         return one_hot
 
     def copy(self) -> 'Tensor':
         copy = Tensor(self.data.copy(), self.requires_grad)
         if self.grad is not None:
-            copy.grad = self.grad
+            copy.grad = self.grad.copy()
         
         if hasattr(self, "grad_fn"):
             copy.grad_fn = self.grad_fn
@@ -166,8 +187,25 @@ class Tensor:
         return copy
     
     def empty_like(self, requires_grad:bool = False):
-        return Tensor(np.empty_like(self.data), requires_grad)
+        xp = cp if self.device == "cuda" else np
+        return Tensor(xp.empty_like(self.data), requires_grad, device=self.device)
     
+    def cpu(self) -> 'Tensor':
+        """Move tensor to CPU"""
+        if self.device == "cpu":
+            return self
+        else:
+            return Tensor(cp.asnumpy(self.data), self.requires_grad, device="cpu")
+    
+    def cuda(self) -> 'Tensor':
+        if self.device == "cuda":
+            return self
+        else:
+            return Tensor(cp.asarray(self.data), self.requires_grad, device="cuda")
+    
+    @property # Tratarlo como un atributo
+    def device(self):
+        return "cuda" if isinstance(self.data, cp.ndarray) else "cpu"
     
 
 def stack(tensors, axis=0):
@@ -191,11 +229,13 @@ def minimum(A, B) -> 'Tensor':
 
     return A._apply_binary_op(Minimum, B)
 
-def random(*shape) -> 'Tensor':
+def random(*shape, device="cpu") -> 'Tensor':
     """
     returns a tensor with the given shape, filled with random values from a uniform distribution [0, 1)
     """
-    return Tensor(np.random.rand(*shape))
+    xp = cp if device == "cuda" else np
+    return Tensor(xp.random.rand(*shape), device=device)
 
-def empty_like(*shape, requires_grad:bool = False ) -> 'Tensor':
-    return Tensor(np.empty_like(*shape), requires_grad)
+def empty_like(*shape, requires_grad:bool = False, device="cpu") -> 'Tensor':
+    xp = cp if device == "cuda" else np
+    return Tensor(xp.empty_like(*shape), requires_grad, device=device)
