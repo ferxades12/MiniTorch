@@ -8,22 +8,24 @@ edition = "2021"
 name = "rs_torch"
 crate-type = ["cdylib"]
 
+[[bin]]
+name = "main"
+path = "src/main.rs"
+
 [dependencies]
 # extension-module: Indica a PyO3 que no debe enlazar contra libpython (necesario para wheels)
 pyo3 = { version = "0.27.2", features = ["extension-module"] }
 # Integración nativa con arreglos de NumPy
 numpy = "0.27.1"
 # Equivalente a NumPy en Rust para cálculos matriciales
-ndarray = { version = "0.17.2", features = ["blas"] }
-# Para usar la implementación Accelerate en macOS o OpenBLAS en Linux/Windows
-blas-src = { version = "0.14.0", features = ["accelerate"] }
+ndarray = { version = "0.17.2"}
 
 [profile.release]
 # Optimizaciones agresivas para rendimiento de producción
-opt-level = 3
+# opt-level = 3
 # Link Time Optimization: Optimiza a través de crates (mejora velocidad, aumenta tiempo de compilación)
-lto = true
+# lto = true
 # Reduce el tamaño del binario y puede mejorar la velocidad al no rastrear stack traces de pánico
-panic = "abort"
+# panic = "abort"
 # Reduce el número de unidades de generación de código para mejorar la optimización global
-codegen-units = 1
+# codegen-units = 1
