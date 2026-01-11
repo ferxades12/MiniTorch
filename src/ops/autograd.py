@@ -1,12 +1,11 @@
 import numpy as np
+from src.base import Function, Array
+from src.ops import dispatch
+
 try:
     import cupy as cp
-    CUDA_AVAILABLE = True
 except ImportError:
     cp = None
-    CUDA_AVAILABLE = False
-from src.base import Function
-from src.ops import dispatch
 
 
 class OpFunction(Function):
@@ -23,7 +22,7 @@ class OpFunction(Function):
 
         Args:
             tensor (Tensor): The input tensor to update the grad for.
-            grad (np.ndarray): The gradient to accumulate.
+            grad (Array): The gradient to accumulate.
         """
 
         if tensor.requires_grad:
@@ -35,13 +34,13 @@ class OpFunction(Function):
             else:
                 tensor.grad_fn.backward(grad)
 
-    def _result_tensor(self, value : np.ndarray, requires_grad: bool, device: str = "cpu"):
+    def _result_tensor(self, value : Array, requires_grad: bool, device: str = "cpu"):
         """Creates a Tensor with the values provided
         This function is called in the forward method of each operation, 
         so the resulting tensor is not a leaf
 
         Args:
-            value (np.ndarray): The data for the resulting tensor.
+            value (Array): The data for the resulting tensor.
             requires_grad (bool): Whether the resulting tensor requires gradients.
             device (str): Device to create the tensor on ('cpu' or 'cuda').
 
@@ -65,11 +64,11 @@ class OpFunction(Function):
             If a dimension in the target has size 1, that dimension was broadcasted, 
             so we sum over it in the gradient to match the target shape.
         Args:
-            grad (np.ndarray): The gradient to unbroadcast.
+            grad (Array): The gradient to unbroadcast.
             target_shape (tuple): The target shape to match.
 
         Returns:
-            np.ndarray: The unbroadcasted gradient.
+            Array: The unbroadcasted gradient.
         """
         while len(grad.shape) > len(target_shape):
             grad = grad.sum(axis=0)

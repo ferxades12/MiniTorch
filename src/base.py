@@ -1,3 +1,13 @@
+import numpy as np
+from typing import Union
+
+try:
+    import cupy as cp
+except ImportError:
+    cp = None
+
+Array = Union[np.ndarray, "cp.ndarray"]
+
 
 class Function():
     """Base class for all operations in the autograd system. 

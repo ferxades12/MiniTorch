@@ -1,5 +1,6 @@
 from src.ops import cpu, cuda
 import numpy as np
+from src.base import Array
 
 try:
     import cupy as cp
@@ -77,7 +78,7 @@ DISPATCH_TABLE = {
 }
 
 
-def _apply_bitwise_op(op:str, A, B) -> np.ndarray:
+def _apply_bitwise_op(op:str, A, B) -> Array:
     """Checks and prepares two tensors for a bitwise operation, then applies the operation.
 
     Args:
@@ -86,7 +87,7 @@ def _apply_bitwise_op(op:str, A, B) -> np.ndarray:
         op (str): The operation to perform.
 
     Returns:
-        np.ndarray: The result of the operation.
+        Array: The result of the operation.
     """
     assert A.device == B.device
     xp = A.xp
@@ -101,23 +102,23 @@ def _apply_bitwise_op(op:str, A, B) -> np.ndarray:
     return _dispatch(op, A.device, A_data, B_data, out)
 
 
-def _apply_unary_op(op:str, A, out=None) -> np.ndarray:
+def _apply_unary_op(op:str, A, out=None) -> Array:
     """Applies a unary operation to a tensor.
 
     Args:
         op (str): The operation to perform.
         A (Tensor): The input tensor.
-        out (np.ndarray, optional): Pre-allocated output array.
+        out (Array, optional): Pre-allocated output array.
 
     Returns:
-        np.ndarray: The result of the operation.
+        Array: The result of the operation.
     """
     if out is None:
         out = A.xp.empty_like(A.data)
     return _dispatch(op, A.device, A.data, out)
 
 
-def _apply_dot(A, B) -> np.ndarray:
+def _apply_dot(A, B) -> Array:
     """Performs a dot product between two tensors.
 
     Args:
@@ -125,7 +126,7 @@ def _apply_dot(A, B) -> np.ndarray:
         B (Tensor): The second input tensor.
 
     Returns:
-        np.ndarray: The result of the dot product.
+        Array: The result of the dot product.
     """
     assert A.device == B.device
     xp = A.xp
@@ -152,7 +153,7 @@ def _apply_dot(A, B) -> np.ndarray:
     return _dispatch("dot", A.device, A.data, B.data, out)
 
 
-def _apply_sum(A, axis=None) -> np.ndarray:
+def _apply_sum(A, axis=None) -> Array:
     """Sums the elements of a tensor along specified axes.
 
     Args:
@@ -160,7 +161,7 @@ def _apply_sum(A, axis=None) -> np.ndarray:
         axis (Union[int, list[int], None]): The axis or axes along which to sum.
 
     Returns:
-        np.ndarray: The sum of the elements.
+        Array: The sum of the elements.
     """
     xp = A.xp
     if axis is None:
@@ -178,26 +179,26 @@ def _apply_sum(A, axis=None) -> np.ndarray:
     return _dispatch("sum", A.device, A.data, axis, out)
 
 
-def _apply_transpose(A) -> np.ndarray:
+def _apply_transpose(A) -> Array:
     """Transposes a 2-D tensor.
 
     Args:
         A (Tensor): The input tensor.
 
     Returns:
-        np.ndarray: The transposed array.
+        Array: The transposed array.
     """
     return _dispatch("transpose", A.device, A.data)
 
 
-def _apply_softmax(A) -> np.ndarray:
+def _apply_softmax(A) -> Array:
     """Applies softmax activation to a tensor.
 
     Args:
         A (Tensor): The input tensor.
 
     Returns:
-        np.ndarray: The softmax result.
+        Array: The softmax result.
     """
     # Meta: determinar axis según dimensiones
     axis = None if A.numdims() == 1 else 1
@@ -236,7 +237,7 @@ def _apply_cross_entropy_indices(softmax, target) -> float:
     return _dispatch("cross_entropy_indices", softmax.device, softmax.data, target.data)
 
 
-def _dispatch(op:str, device:str, *args) -> np.ndarray:
+def _dispatch(op:str, device:str, *args) -> Array:
     """Dispatches the operation to the appropriate device function.
 
     Args:
@@ -247,7 +248,7 @@ def _dispatch(op:str, device:str, *args) -> np.ndarray:
         NotImplementedError: If the operation is not supported on the given device.
 
     Returns:
-        (np.ndarray): The result of the dispatched operation.
+        Array: The result of the dispatched operation.
     """
 
     if device not in DISPATCH_TABLE[op] or DISPATCH_TABLE[op][device] is None:
@@ -256,13 +257,13 @@ def _dispatch(op:str, device:str, *args) -> np.ndarray:
     return DISPATCH_TABLE[op][device](*args)
 
 
-def _broadcast(A: np.ndarray, B: np.ndarray, xp) -> tuple[np.ndarray, np.ndarray]: #TODO mover a utils
+def _broadcast(A: Array, B: Array, xp) -> tuple[Array, Array]: #TODO mover a utils
     """Broadcasts two arrays to a common shape.
     Args:
-        A (np.ndarray): First array.
-        B (np.ndarray): Second array.
+        A (Array): First array.
+        B (Array): Second array.
     Returns:
-        (np.ndarray, np.ndarray): The broadcasted arrays.
+        tuple[Array, Array]: The broadcasted arrays.
     """
     shape = xp.broadcast_shapes(A.shape, B.shape)
 

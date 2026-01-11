@@ -1,4 +1,5 @@
 from src.ops.autograd import *
+from src.base import Array
 import numpy as np
 
 try:
@@ -9,7 +10,7 @@ except ImportError:
     CUDA_AVAILABLE = False
 
 class Tensor:
-    grad: np.ndarray
+    grad: Array
     grad_fn : Function
     is_leaf: bool
     device: str
@@ -181,7 +182,7 @@ class Tensor:
         
         return reshaped
     
-    def one_hot(self, length) -> np.ndarray:
+    def one_hot(self, length) -> Array:
         if self.numdims() != 1:
             raise ValueError("one_hot es solo para vectores")
 
