@@ -110,15 +110,19 @@ def main():
     print("\nEvaluating on test set...")
     model.eval()
     
-    correct = 0
-    total = 0
+    # Acumular predicciones para hacer una sola comparación al final
+    all_preds = []
+    all_labels = []
     
     for data, lbl in test_dataloader:
         preds = model.predict(data)
-        correct += np.sum(preds.data == lbl)
-        total += len(lbl)
+        all_preds.append(preds.data)
+        all_labels.append(lbl)
     
-    accuracy = (correct / total) * 100
+    # Concatenar y calcular accuracy una sola vez
+    all_preds_data = np.concatenate(all_preds)
+    all_labels_data = np.concatenate(all_labels)
+    accuracy = (np.sum(all_preds_data == all_labels_data) / len(all_labels_data)) * 100
     print(f"Test Accuracy: {accuracy:.2f}%")
     
     # Show some predictions

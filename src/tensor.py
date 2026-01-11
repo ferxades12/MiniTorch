@@ -227,9 +227,14 @@ class Tensor:
     
 
 def stack(tensors, axis=0):
-        tensors = [tensor.data for tensor in tensors]
+        if not tensors:
+            raise ValueError("Cannot stack empty list of tensors")
+        
+        device = tensors[0].device
+        xp = tensors[0].xp
+        tensors_data = [tensor.data for tensor in tensors]
 
-        return Tensor(np.stack(tensors, axis=axis))
+        return Tensor(xp.stack(tensors_data, axis=axis), device=device)
 
 def maximum(A, B) -> 'Tensor':
     """
@@ -251,7 +256,7 @@ def random(*shape, device="cpu") -> 'Tensor':
     """
     returns a tensor with the given shape, filled with random values from a uniform distribution [0, 1)
     """
-    xp = cp if device == "cuda" else np
+    xp = cp if device == "cuda" and CUDA_AVAILABLE else np
     return Tensor(xp.random.rand(*shape), device=device)
 
 def empty_like(*shape, requires_grad:bool = False, device="cpu") -> 'Tensor':

@@ -8,6 +8,7 @@ Each nn layer has a weights and bias parameters
 """
 
 import numpy as np
+import math
 
 class Optimizer():
     """Base class for all optimizers.
@@ -38,7 +39,7 @@ class SGD(Optimizer):
         """
         super().__init__(parameters=parameters, lr=lr, momentum=momentum, dampening=dampening, maximize=maximize)
 
-        self.updates = [np.zeros_like(p.data) for p in parameters]
+        self.updates = [p.xp.zeros_like(p.data) for p in parameters]
         if momentum == 0: self.dampening = 0
         self.direction = 1 if maximize else -1
 
@@ -81,8 +82,8 @@ class Adam(Optimizer):
         """
         super().__init__(parameters=parameters, lr=lr, beta1=beta1, beta2=beta2, eps=eps)
 
-        self.m = [np.zeros_like(p.data) for p in parameters]
-        self.v = [np.zeros_like(p.data) for p in parameters]
+        self.m = [p.xp.zeros_like(p.data) for p in parameters]
+        self.v = [p.xp.zeros_like(p.data) for p in parameters]
 
 
     def step(self):
@@ -91,12 +92,15 @@ class Adam(Optimizer):
         Computes biased first and second moment estimates, corrects the bias, and updates parameters.
         """
         self.iterations += 1
+        b1 = self.beta1
+        b2 = self.beta2
 
-        bias_correction1 = 1 - self.beta1 ** self.iterations
-        bias_correction2 = 1 - self.beta2 ** self.iterations
+        bias_correction1 = 1 - b1 ** self.iterations
+        bias_correction2 = 1 - b2 ** self.iterations
 
-        step_size = self.lr * (np.sqrt(bias_correction2) / bias_correction1) # Calcular factores constantes
-        eps_corrected = self.eps * np.sqrt(bias_correction2)  
+        # Use math.sqrt for scalar operations (more efficient than np.sqrt for scalars)
+        step_size = self.lr * (math.sqrt(bias_correction2) / bias_correction1)
+        eps_corrected = self.eps * math.sqrt(bias_correction2)
 
         for i, param in enumerate(self.parameters):
             if param.grad is None: continue
@@ -104,9 +108,9 @@ class Adam(Optimizer):
             g = param.grad
 
             # First and second moment estimates
-            self.m[i] = self.beta1 * self.m[i] + (1 - self.beta1) * g
-            self.v[i] = self.beta2 * self.v[i] + (1 - self.beta2) * g**2
+            self.m[i] *= b1 + (1 - b1) * g
+            self.v[i] *= b2 + (1 - b2) * g * g
 
             # Update parameters
-            param.data -= step_size * self.m[i] / (np.sqrt(self.v[i]) + eps_corrected)
+            param.data -= step_size * self.m[i] / (param.xp.sqrt(self.v[i]) + eps_corrected)
 

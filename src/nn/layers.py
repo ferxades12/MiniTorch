@@ -194,7 +194,7 @@ class RNN(Module):
         return x, h[-1]
 
 
-
+# TODO implement GRU, LSTM, CNN and Transformer layers
 
 
 def _initialize_parameter(k, size, device = "cpu") -> Tensor:

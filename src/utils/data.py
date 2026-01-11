@@ -123,6 +123,11 @@ class Dataloader:
             self.indices = xp.random.permutation(len(self.dataset))
         else:
             self.indices = xp.arange(len(self.dataset))
+        
+        # Convertir índices a numpy UNA VEZ al inicio si estamos en GPU
+        # Esto evita transferencias GPU->CPU en cada batch
+        if self.device == "cuda" and CUDA_AVAILABLE:
+            self.indices = cp.asnumpy(self.indices)
 
         self.current = 0
 
@@ -140,10 +145,6 @@ class Dataloader:
             raise StopIteration
 
         batch_indices = self.indices[self.current: self.current + self.batch_size]
-        
-        # Convertir índices a numpy si es necesario para indexación
-        if self.device == "cuda" and CUDA_AVAILABLE:
-            batch_indices = cp.asnumpy(batch_indices)
 
         batch = [self.dataset._getitem(int(i)) for i in batch_indices]
         data_batch, label_batch = zip(*batch)
@@ -187,19 +188,14 @@ def random_split(dataset:Dataset, lengths):
         for i in range(sum(lengths), len(dataset)):
             lengths[i % len(lengths)] += 1
     
-    # Detectar si los datos están en GPU o CPU
-    xp = cp if CUDA_AVAILABLE and cp is not None and isinstance(dataset.data, cp.ndarray) else np
-    
-    index_list = xp.random.permutation(len(dataset))
+    # Usar siempre numpy para índices (la indexación se hace en CPU de todas formas)
+    # Esto evita transferencias innecesarias GPU->CPU
+    index_list = np.random.permutation(len(dataset))
 
     subsets = []
     start = 0
     for length in lengths:
         part = index_list[start: start + length]
-        
-        # Convertir índices a numpy para indexación segura
-        if xp == cp:
-            part = cp.asnumpy(part)
             
         batch = [dataset._getitem(int(i)) for i in part]
         
