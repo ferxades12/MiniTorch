@@ -15,11 +15,12 @@ The objective is to learn how neural networks work internally
 - Meta + Kernel architecture (preparation for Rust/CUDA) ✅
 - Model serialization 
 - ML Algorithms 
+- GRU, LSTM, CNN and Transformer layers
 
 ## 🚬:
 
 - Meta + kernel design (preparation for Rust) ✅
-- CUDA integration (CuPy) 
+- CUDA integration (CuPy) ✅
 - Rust backend 
 - Rust parallelism 
 - CUDA integration in Rust 
