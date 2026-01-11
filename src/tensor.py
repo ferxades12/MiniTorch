@@ -192,7 +192,7 @@ class Tensor:
         return one_hot
 
     def copy(self) -> 'Tensor':
-        copy = Tensor(self.data.copy(), self.requires_grad)
+        copy = Tensor(self.data.copy(), self.requires_grad, device=self.device)
         if self.grad is not None:
             copy.grad = self.grad.copy()
         

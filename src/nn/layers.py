@@ -5,22 +5,23 @@ from src.ops import DropoutOp
 from src.nn.activations import Tanh, ReLU
 
 class Linear(Module):
-    def __init__(self, in_features:int, out_features:int, bias:bool=True):
+    def __init__(self, in_features:int, out_features:int, bias:bool=True, device:str="cpu"):
         """_summary_
 
         Args:
             in_features (int): Number of input features (weights)
             out_features (int): Number of output features (neurons)
             bias (bool, optional): Whether to include a bias term. Defaults to True.
+            device (str, optional): Device to store tensors on ('cpu' or 'cuda'). Defaults to 'cpu'.
         """
         super().__init__()
         k = np.sqrt(1 / in_features)
-        self.weight:Tensor = _initialize_parameter(k, (in_features, out_features))
+        self.weight:Tensor = _initialize_parameter(k, (in_features, out_features), device=device)
 
         self.params.append(self.weight)
 
         if bias:
-            self.bias:Tensor = _initialize_parameter(k, out_features)
+            self.bias:Tensor = _initialize_parameter(k, out_features, device=device)
             self.params.append(self.bias)
         else:
             self.bias = None
@@ -93,7 +94,7 @@ class RNN(Module):
     """A single-layer RNN where:
     output_size = hidden_size
     """
-    def __init__(self, input_size, hidden_size, num_layers=1, nonlinearity="tanh", dropout=0):
+    def __init__(self, input_size, hidden_size, num_layers=1, nonlinearity="tanh", dropout=0, device="cpu"):
         """A single-layer RNN 
 
         Args:
@@ -123,12 +124,11 @@ class RNN(Module):
             raise ValueError("nonlinearity must be 'tanh' or 'relu'")
         
         k = np.sqrt(1 / hidden_size)
-        self.Wx = _initialize_parameter(k, (input_size, hidden_size))
-        self.Wh = _initialize_parameter(k, (hidden_size, hidden_size))
-        self.Wy = _initialize_parameter(k, (hidden_size, hidden_size))
-        self.bh = _initialize_parameter(k, hidden_size)
-        self.by = _initialize_parameter(k, hidden_size)
-
+        self.Wx = _initialize_parameter(k, (input_size, hidden_size), device=device)
+        self.Wh = _initialize_parameter(k, (hidden_size, hidden_size), device=device)
+        self.Wy = _initialize_parameter(k, (hidden_size, hidden_size), device=device)
+        self.bh = _initialize_parameter(k, hidden_size, device=device)
+        self.by = _initialize_parameter(k, hidden_size, device=device)
         self.params.extend([self.Wx, self.Wh, self.Wy, self.bh, self.by])
 
     def forward(self, x:Tensor):
@@ -197,5 +197,5 @@ class RNN(Module):
 
 
 
-def _initialize_parameter(k, size):
-    return Tensor(np.random.uniform(-1 * k, k, size), requires_grad=True)
+def _initialize_parameter(k, size, device = "cpu") -> Tensor:
+    return Tensor(np.random.uniform(-1 * k, k, size), requires_grad=True, device=device)

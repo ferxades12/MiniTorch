@@ -60,17 +60,17 @@ class Module:
 
         self.eval()
 
-
-        preds = self.forward(x).data
+        output = self.forward(x)
+        preds = output.data
 
         if preds.ndim > 1 and preds.shape[1] > 1:
-            preds = np.argmax(preds, axis=1)
+            preds = output.xp.argmax(preds, axis=1)
         else:
             preds = (preds > 0.5).astype(int)
         
         if eval:
             self.training()
             
-        return Tensor(preds)
+        return Tensor(preds, device=output.device)
 
     

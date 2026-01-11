@@ -1,10 +1,18 @@
 """Utility functions for handling datasets and dataloaders."""
 
+import math
 from src.tensor import Tensor
 import numpy as np
 
+try:
+    import cupy as cp
+    CUDA_AVAILABLE = True
+except ImportError:
+    cp = None
+    CUDA_AVAILABLE = False
+
 class Dataset():
-    def __init__(self, data, labels=None, to_tensor:bool = False, target_to_tensor:bool = False):
+    def __init__(self, data, labels=None, to_tensor:bool = False, target_to_tensor:bool = False, device = "cpu"):
         """A simple dataset class.
 
         Args:
@@ -25,6 +33,13 @@ class Dataset():
         self.to_tensor = to_tensor
         self.target_to_tensor = target_to_tensor
 
+        # Device handling
+        if device == "cuda" and not CUDA_AVAILABLE:
+            raise ValueError("Cupy is not available. Please install cupy to use CUDA.")
+        elif device not in ["cpu", "cuda"]:
+            raise ValueError("Device must be either 'cpu' or 'cuda'.")
+        self.device = device
+
     def __getitem__(self, index):
         """Retrieves an item from the dataset.
 
@@ -39,11 +54,17 @@ class Dataset():
             return [self[i] for i in idx]
 
         data = self.data[index]
-        data = Tensor(data) if self.to_tensor else data    
+
+        # Convertir a tensor si es necesario
+        if self.to_tensor:
+            data = Tensor(data, device=self.device)
 
         if self.labels is not None:
             lbl = self.labels[index]
-            lbl = Tensor(lbl) if self.target_to_tensor else lbl
+
+            # Convertir a tensor si es necesario
+            if self.target_to_tensor:
+                    lbl = Tensor(lbl, device=self.device)
 
             return (data, lbl)
 
@@ -76,7 +97,7 @@ class Dataset():
         return len(self.data)
 
 class Dataloader:
-    def __init__(self, dataset:Dataset,  batch_size:int = 8, shuffle=True):
+    def __init__(self, dataset:Dataset,  batch_size:int = 8, shuffle=True, device="cpu"):
         """A simple dataloader class.
 
         Args:
@@ -87,6 +108,7 @@ class Dataloader:
         self.dataset = dataset
         self.batch_size = int(batch_size)
         self.shuffle = bool(shuffle)
+        self.device = device
 
     def __iter__(self):
         """Starts an iteration over the dataloader.
@@ -94,10 +116,13 @@ class Dataloader:
         Returns:
             (Dataloader): The dataloader instance.
         """
+        xp = self.xp
+
+
         if self.shuffle:
-            self.indices = np.random.permutation(len(self.dataset))
+            self.indices = xp.random.permutation(len(self.dataset))
         else:
-            self.indices = np.arange(len(self.dataset))
+            self.indices = xp.arange(len(self.dataset))
 
         self.current = 0
 
@@ -115,14 +140,18 @@ class Dataloader:
             raise StopIteration
 
         batch_indices = self.indices[self.current: self.current + self.batch_size]
+        
+        # Convertir índices a numpy si es necesario para indexación
+        if self.device == "cuda" and CUDA_AVAILABLE:
+            batch_indices = cp.asnumpy(batch_indices)
 
-        batch = [self.dataset._getitem(i) for i in batch_indices]
+        batch = [self.dataset._getitem(int(i)) for i in batch_indices]
         data_batch, label_batch = zip(*batch)
 
         self.current += self.batch_size
 
-        data_batch = Tensor(data_batch, requires_grad=True) if self.dataset.to_tensor else data_batch
-        label_batch = Tensor(label_batch) if self.dataset.target_to_tensor else label_batch
+        data_batch = Tensor(data_batch, requires_grad=True, device=self.device) if self.dataset.to_tensor else data_batch
+        label_batch = Tensor(label_batch, device=self.device) if self.dataset.target_to_tensor else label_batch
 
         return data_batch, label_batch
 
@@ -133,7 +162,12 @@ class Dataloader:
         Returns:
             (int): The number of batches.
         """
-        return int(len(self.dataset) / self.batch_size)
+        # return int(len(self.dataset) / self.batch_size)
+        return math.ceil(len(self.dataset) / self.batch_size)
+    
+    @property
+    def xp(self):
+        return cp if self.device == "cuda" and CUDA_AVAILABLE else np
 
 
 
@@ -152,20 +186,27 @@ def random_split(dataset:Dataset, lengths):
 
         for i in range(sum(lengths), len(dataset)):
             lengths[i % len(lengths)] += 1
-        
-    index_list = np.random.permutation(len(dataset))
-
+    
+    # Detectar si los datos están en GPU o CPU
+    xp = cp if CUDA_AVAILABLE and cp is not None and isinstance(dataset.data, cp.ndarray) else np
+    
+    index_list = xp.random.permutation(len(dataset))
 
     subsets = []
     start = 0
     for length in lengths:
         part = index_list[start: start + length]
-
-        batch = [dataset._getitem(i) for i in part]
+        
+        # Convertir índices a numpy para indexación segura
+        if xp == cp:
+            part = cp.asnumpy(part)
+            
+        batch = [dataset._getitem(int(i)) for i in part]
+        
         data, labels = zip(*batch)
 
-        subsets.append(Dataset(data, labels=labels, to_tensor=dataset.to_tensor, target_to_tensor=dataset.target_to_tensor))
+        subsets.append(Dataset(data, labels=labels, to_tensor=dataset.to_tensor, target_to_tensor=dataset.target_to_tensor, device=dataset.device))
 
-        start +=length
+        start += length
     
     return subsets
