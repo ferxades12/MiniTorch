@@ -1,9 +1,11 @@
-import numpy as np
 from src.tensor import Tensor
+import numpy as np
 import src.nn as nn
 import src.nn.functional as F
 from src.utils.data import * 
 import time 
+
+# python -m examples.xor_classification
 
 def generate_data(n_samples):
     X = np.random.rand(n_samples, 2)
@@ -13,23 +15,28 @@ def generate_data(n_samples):
 
 
 def main():
+    device = "cuda"
+    epochs = 100
+    batch_size = 512
+    
     # Generar dataset
     x, y = generate_data(n_samples=10_000)
-    dataset = Dataset(x, y, to_tensor=True)
+    dataset = Dataset(x, y, to_tensor=True, target_to_tensor=True, device=device)
     train_data, test_data = random_split(dataset, (0.8, 0.2))
-    train_dataloader = Dataloader(train_data, shuffle=True)
-    test_dataloader = Dataloader(test_data, shuffle= True)
+    train_dataloader = Dataloader(train_data, batch_size=batch_size, shuffle=True, device=device)
+    test_dataloader = Dataloader(test_data, batch_size=batch_size, shuffle=True, device=device)
 
     model = nn.Sequential(
-        nn.Linear(2, 10),
+        nn.Linear(2, 256, device=device),
         nn.ReLU(),
-        nn.Linear(10, 2)
+        nn.Linear(256, 256, device=device),
+        nn.ReLU(),
+        nn.Linear(256, 2, device=device)
     )
     model.train()
     optimizer = nn.Adam(model.parameters(), lr=0.01)
 
     # Entrenamiento
-    epochs = 100
     start_time = time.time()  # Iniciar medición de tiempo
 
     for epoch in range(epochs):
@@ -51,7 +58,7 @@ def main():
 
         if (epoch + 1) % 20 == 0:
             avg_loss = epoch_loss / len(train_dataloader)
-            print(f"Epoch {epoch + 1}, Loss: {avg_loss:.4f}")
+            print(f"Epoch {epoch + 1}/{epochs}, Loss: {avg_loss:.4f}")
 
     end_time = time.time()  # Finalizar medición de tiempo
     print(f"Tiempo total de entrenamiento: {end_time - start_time:.2f} segundos")
@@ -62,8 +69,12 @@ def main():
     acc = 0
     for data, lbl in test_dataloader:
         preds = model.predict(data)
-
-        acc += np.mean(preds.data == lbl)
+        
+        # Convertir a numpy si están en GPU
+        pred_data = preds.data if preds.device == "cpu" else preds.xp.asnumpy(preds.data)
+        lbl_data = lbl if not isinstance(lbl, Tensor) else (lbl.data if lbl.device == "cpu" else lbl.xp.asnumpy(lbl.data))
+        
+        acc += np.mean(pred_data == lbl_data)
     
     print(f"Test accuracy: {acc/ len(test_dataloader)*100:.2f}%")
     
