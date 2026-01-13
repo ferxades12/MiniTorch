@@ -1,5 +1,6 @@
 mod tensor;
 mod cpu;
+mod autograd;
 
 use pyo3::prelude::*;
 use tensor::Tensor;
