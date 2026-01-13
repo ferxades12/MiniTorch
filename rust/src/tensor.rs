@@ -1,18 +1,20 @@
-use std::fmt::format;
+use std::sync::{Arc, Mutex};
 
 use pyo3::{exceptions::PyNotImplementedError, prelude::*};
 use numpy::{PyArrayDyn, PyReadonlyArrayDyn};
 use ndarray::{ArrayD, IxDyn, ArrayViewD, ArrayViewMutD};
 
 use crate::cpu;
+use crate::autograd::BackwardNode;
 
 
 #[pyclass] // para exponer el struct a Python
 pub struct Tensor{
-    data: Device,  
-    grad : Option<ArrayD<f32>>,
-    grad_fn : Option<bool>,
-    shape: Vec<usize>, // Para futura implementacion de CUDA
+    data: Arc<Device>,  
+    //Mutex para tener varias referencias mutables. Arc para pasar varias referencias de forma eficiente
+    pub grad : Arc<Mutex<Option<ArrayD<f32>>>>,
+    pub grad_fn : Option<Box<BackwardNode>>,
+    pub shape: Vec<usize>, // Para futura implementacion de CUDA
     #[pyo3(get)]  // Permite leer is_leaf desde Python
     pub is_leaf : bool,
     #[pyo3(get)]  // Permite leer requires_grad desde Python
@@ -23,6 +25,18 @@ pub struct Tensor{
 enum Device{
     CPU(ArrayD<f32>),
     CUDA(bool)
+}
+impl Clone for Tensor {
+    fn clone(&self) -> Self {
+        Tensor {
+            data: Arc::clone(&self.data),
+            grad: Arc::clone(&self.grad),
+            grad_fn: None, // No clonamos el grafo computacional
+            shape: self.shape.clone(),
+            is_leaf: self.is_leaf,
+            requires_grad: self.requires_grad,
+        }
+    }
 }
 
 // Métodos que Python puede llamar
@@ -43,8 +57,8 @@ impl Tensor{
         } else {None};
 
         Ok(Tensor {
-            data : Device::CPU(array),
-            grad : grad,
+            data : Arc::new(Device::CPU(array)),
+            grad : Arc::new(Mutex::new(grad)),
             grad_fn : None,
             shape: shape,
             is_leaf : true,
@@ -54,7 +68,7 @@ impl Tensor{
 
      // Método para convertir de vuelta a numpy
     fn numpy<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyArrayDyn<f32>>> {
-        match &self.data {
+        match &*self.data {
             Device::CPU(array) =>{Ok(PyArrayDyn::from_array(py, &array))}
             _ => Err(PyNotImplementedError::new_err("Not implemented"))
         }
@@ -63,41 +77,59 @@ impl Tensor{
 }
 
 impl Tensor{
-    fn from_device(data:Device, requires_grad: bool) -> Result<Tensor, String> {
+    fn result_tensor_requires_grad(&self, data:Device, grad:Option<ArrayD<f32>>, grad_fn:Option<Box<BackwardNode>>) -> Result<Tensor, String> {
         let shape = match &data {
             Device::CPU(array) => array.shape().to_vec(),
             _ => {return Err("Not implemented".into());}
         };
 
-        let grad: Option<ArrayD<f32>> = if requires_grad{
-            Some(ArrayD::zeros(IxDyn(&shape)))
-        } else {None};
+        let grad = grad.or_else(|| None);
+
 
         Ok(Tensor {
-            data : data,
-            grad : grad,
+            data : Arc::new(data),
+            grad : Arc::new(Mutex::new(grad)),
+            grad_fn : grad_fn,
+            shape: shape,
+            is_leaf : false,
+            requires_grad : true,
+        })
+    }
+
+    fn result_tensor_no_requires_grad(&self, data:Device) -> Result<Tensor, String> {
+        let shape = match &data {
+            Device::CPU(array) => array.shape().to_vec(),
+            _ => {return Err("Not implemented".into());}
+        };
+
+        Ok(Tensor {
+            data : Arc::new(data),
+            grad : Arc::new(Mutex::new(None)),
             grad_fn : None,
             shape: shape,
             is_leaf : true,
-            requires_grad : requires_grad,
+            requires_grad : false,
         })
     }
 
     // Exponer __repr__ para Python
     fn __repr__(&self) -> String {
-        match &self.data {
+        match &*self.data {
             Device::CPU(array) => format!("Tensor(shape={:?}, requires_grad={})", array.shape(), self.requires_grad),
             _ => format!("CUDA not implemented")
         }
     }
 
 
-    fn dispatch_binary_op(&self, method:&str, rhs:&Tensor, kernel_cpu: fn(&ArrayViewD<f32>, &ArrayViewD<f32>, &mut ArrayViewMutD<f32>)) -> Tensor{
+    fn dispatch_binary_op<F>(&self, method:&str, rhs:&Tensor, kernel_cpu: fn(&ArrayViewD<f32>, &ArrayViewD<f32>, &mut ArrayViewMutD<f32>), make_node:F) -> Tensor 
+    where
+        F:FnOnce(Tensor, Tensor) -> BackwardNode
+    {
         if self.shape != rhs.shape{
             panic!("Shapes dont match for op {}", method);
         }
         
-        let out = match (&self.data, &rhs.data) {
+        let out = match (&*self.data, &*rhs.data) {
             (Device::CPU(a), Device::CPU(b)) => {
                 let mut out = ArrayD::zeros(IxDyn(&self.shape));
                 kernel_cpu(&a.view(), &b.view(), &mut out.view_mut());
@@ -106,18 +138,25 @@ impl Tensor{
             _ => {panic!("Unimplemented");}
         };
 
-        Tensor::from_device(out, self.requires_grad || rhs.requires_grad).unwrap()
+       
+        if self.requires_grad || rhs.requires_grad {
+            let grad_fn = Some(Box::new(make_node(self.clone(), rhs.clone())));
+
+            self.result_tensor_requires_grad(out, None, grad_fn).unwrap()
+        } else {
+            self.result_tensor_no_requires_grad(out).unwrap()
+        }
     }
 }
 
 
 macro_rules! impl_binary_op {
-    ($trait:ident, $method:ident, $kernel:path) => {
+    ($trait:ident, $method:ident, $kernel:path, $make_node:expr) => {
         // 1. &Tensor op &Tensor
         impl std::ops::$trait<&Tensor> for &Tensor {
             type Output = Tensor;
             fn $method(self, rhs: &Tensor) -> Self::Output {
-                self.dispatch_binary_op(stringify!($method), rhs, $kernel)
+                self.dispatch_binary_op(stringify!($method), rhs, $kernel, $make_node)
             }
         }
 
@@ -147,6 +186,6 @@ macro_rules! impl_binary_op {
     };
 }
 
-impl_binary_op!(Add, add, cpu::add_cpu);
+impl_binary_op!(Add, add, cpu::add_cpu, |a: Tensor, b: Tensor| BackwardNode::Add(crate::autograd::AddBackward { tensor: a, other: b }));
 
 
