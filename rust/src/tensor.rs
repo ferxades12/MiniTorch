@@ -19,7 +19,7 @@ pub struct Tensor{
     pub data: Arc<Device>,  
     //Mutex para tener varias referencias mutables. Arc para pasar varias referencias de forma eficiente
     pub grad : Grad,
-    pub grad_fn : Option<Box<BackwardNode>>,
+    pub grad_fn : Option<Arc<BackwardNode>>,
     pub shape: Vec<usize>, // Para futura implementacion de CUDA
     #[pyo3(get)]  // Permite leer is_leaf desde Python
     pub is_leaf : bool,
@@ -37,7 +37,7 @@ impl Clone for Tensor {
         Tensor {
             data: Arc::clone(&self.data),
             grad: Arc::clone(&self.grad),
-            grad_fn: None, // No clonamos el grafo computacional
+            grad_fn: self.grad_fn.as_ref().map(|arc| Arc::clone(arc)),
             shape: self.shape.clone(),
             is_leaf: self.is_leaf,
             requires_grad: self.requires_grad,
@@ -127,7 +127,7 @@ impl Tensor{
 }
 
 impl Tensor{
-    fn result_tensor_requires_grad(&self, data:Device, grad:Option<ArrayD<f32>>, grad_fn:Option<Box<BackwardNode>>) -> Result<Tensor, String> {
+    fn result_tensor_requires_grad(&self, data:Device, grad:Option<ArrayD<f32>>, grad_fn:Option<Arc<BackwardNode>>) -> Result<Tensor, String> {
         let shape = match &data {
             Device::CPU(array) => array.shape().to_vec(),
             _ => {return Err("Not implemented".into());}
@@ -190,7 +190,7 @@ impl Tensor{
 
        
         if self.requires_grad || rhs.requires_grad {
-            let grad_fn = Some(Box::new(make_node(self.clone(), rhs.clone())));
+            let grad_fn = Some(Arc::new(make_node(self.clone(), rhs.clone())));
 
             self.result_tensor_requires_grad(out, None, grad_fn).unwrap()
         } else {
@@ -214,7 +214,7 @@ impl Tensor{
 
        
         if self.requires_grad {
-            let grad_fn = Some(Box::new(make_node(self.clone())));
+            let grad_fn = Some(Arc::new(make_node(self.clone())));
 
             self.result_tensor_requires_grad(out, None, grad_fn).unwrap()
         } else {
@@ -238,7 +238,7 @@ impl Tensor{
 
        
         if self.requires_grad {
-            let grad_fn = Some(Box::new(make_node(self.clone()))); //TODO mirar si es realmente necesario el make_node en caso unario
+            let grad_fn = Some(Arc::new(make_node(self.clone()))); //TODO mirar si es realmente necesario el make_node en caso unario
 
             self.result_tensor_requires_grad(out, None, grad_fn).unwrap()
         } else {
