@@ -329,7 +329,7 @@ class TestActivations:
         W2 = M.Tensor(np.random.randn(features, features), requires_grad=True)
         w2 = torch.tensor(W2.data, dtype=torch.float32, requires_grad=True)
 
-        # Forward MiniTorch
+        # Forward RusTorch
         Z1 = A.dot(W1)
         H1 = nn.tanh(Z1)
         Z2 = H1.dot(W2)

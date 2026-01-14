@@ -1,5 +1,5 @@
 """
-Standard activation functions for MiniTorch.
+Standard activation functions for RusTorch.
 """
 
 import src as M

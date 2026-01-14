@@ -33,7 +33,7 @@ def test_mse(pred, target):
     ([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], [[0, 0, 1], [0, 1, 0]]),  # One-hot
 ])
 def test_cross_entropy(pred, target):
-    # MiniTorch
+    # RusTorch
     a = M.Tensor(pred, requires_grad=True)
     b = M.Tensor(target, requires_grad=False)
     loss = nn.cross_entropy(a, b)

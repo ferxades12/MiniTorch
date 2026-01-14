@@ -32,7 +32,7 @@ Disclaimer: AI was used for the test module, documentation, reviewing and inform
 
 ## 📂 Project Structure<br>
 ```
-MiniTorch/
+RusTorch/
 │
 ├── src/
 │ ├── ops/                   
@@ -63,8 +63,8 @@ MiniTorch/
 
 Clone the repository:
 ```bash
-git clone https://github.com/ferxades12/MiniTorch
-cd MiniTorch
+git clone https://github.com/ferxades12/RusTorch
+cd RusTorch
 ```
 
 Create virtual environment (optional but recommended):
