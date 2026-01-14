@@ -230,7 +230,7 @@ class Sum(OpFunction):
         """
         tensor, ax = self.ctx
         xp = tensor.xp
-
+        //TODO refactorizar
         if ax is None:
             grad = xp.ones(tensor.shape()) * grad_output
         else:
