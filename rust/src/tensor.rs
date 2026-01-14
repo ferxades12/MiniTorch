@@ -10,7 +10,7 @@ use crate::autograd::BackwardNode;
 
 #[pyclass] // para exponer el struct a Python
 pub struct Tensor{
-    data: Arc<Device>,  
+    pub data: Arc<Device>,  
     //Mutex para tener varias referencias mutables. Arc para pasar varias referencias de forma eficiente
     pub grad : Arc<Mutex<Option<ArrayD<f32>>>>,
     pub grad_fn : Option<Box<BackwardNode>>,
@@ -22,7 +22,7 @@ pub struct Tensor{
     //TODO Device
 }
 
-enum Device{
+pub enum Device{
     CPU(ArrayD<f32>),
     CUDA(bool)
 }
@@ -72,6 +72,15 @@ impl Tensor{
             Device::CPU(array) =>{Ok(PyArrayDyn::from_array(py, &array))}
             _ => Err(PyNotImplementedError::new_err("Not implemented"))
         }
+    }
+
+    // Python operator overloads
+    fn __add__(&self, rhs: &Tensor) -> PyResult<Tensor> {
+        Ok(self + rhs)
+    }
+
+    fn __mul__(&self, rhs: &Tensor) -> PyResult<Tensor> {
+        Ok(self * rhs)
     }
     
 }
@@ -151,50 +160,51 @@ impl Tensor{
 
 
 macro_rules! impl_binary_op {
-    ($trait:ident) => {
-        paste::paste! { // Para pasar Add en vez de (Add, add, AddBackward)
-            // 1. &Tensor op &Tensor
-            impl std::ops::$trait<&Tensor> for &Tensor {
-                type Output = Tensor;
-                fn [<$trait:lower>](self, rhs: &Tensor) -> Self::Output {
-                    self.dispatch_binary_op(
-                        stringify!([<$trait:lower>]), 
-                        rhs, 
-                        cpu::[<$trait:lower _cpu>],
-                        |a: Tensor, b: Tensor| BackwardNode::$trait(
-                            crate::autograd::[<$trait Backward>] { tensor: a, other: b }
+    ($($trait:ident);*) => {
+        $( //Multiples llamadas
+            paste::paste! { // Para pasar Add en vez de (Add, add, AddBackward)
+                // 1. &Tensor op &Tensor
+                impl std::ops::$trait<&Tensor> for &Tensor {
+                    type Output = Tensor;
+                    fn [<$trait:lower>](self, rhs: &Tensor) -> Self::Output {
+                        self.dispatch_binary_op(
+                            stringify!([<$trait:lower>]), 
+                            rhs, 
+                            cpu::[<$trait:lower _cpu>],
+                            |a: Tensor, b: Tensor| BackwardNode::$trait(
+                                crate::autograd::[<$trait Backward>] { tensor: a, other: b }
+                            )
                         )
-                    )
+                    }
                 }
-            }
 
-            // 2. Tensor op Tensor
-            impl std::ops::$trait<Tensor> for Tensor {
-                type Output = Tensor;
-                fn [<$trait:lower>](self, rhs: Tensor) -> Self::Output {
-                    (&self).[<$trait:lower>](&rhs)
+                // 2. Tensor op Tensor
+                impl std::ops::$trait<Tensor> for Tensor {
+                    type Output = Tensor;
+                    fn [<$trait:lower>](self, rhs: Tensor) -> Self::Output {
+                        (&self).[<$trait:lower>](&rhs)
+                    }
                 }
-            }
 
-            // 3. Tensor op &Tensor
-            impl std::ops::$trait<&Tensor> for Tensor {
-                type Output = Tensor;
-                fn [<$trait:lower>](self, rhs: &Tensor) -> Self::Output {
-                    (&self).[<$trait:lower>](rhs)
+                // 3. Tensor op &Tensor
+                impl std::ops::$trait<&Tensor> for Tensor {
+                    type Output = Tensor;
+                    fn [<$trait:lower>](self, rhs: &Tensor) -> Self::Output {
+                        (&self).[<$trait:lower>](rhs)
+                    }
                 }
-            }
 
-            // 4. &Tensor op Tensor
-            impl std::ops::$trait<Tensor> for &Tensor {
-                type Output = Tensor;
-                fn [<$trait:lower>](self, rhs: Tensor) -> Self::Output {
-                    self.[<$trait:lower>](&rhs)
+                // 4. &Tensor op Tensor
+                impl std::ops::$trait<Tensor> for &Tensor {
+                    type Output = Tensor;
+                    fn [<$trait:lower>](self, rhs: Tensor) -> Self::Output {
+                        self.[<$trait:lower>](&rhs)
+                    }
                 }
             }
-        }
+        )*
     };
 }
 
-impl_binary_op!(Add);
 
-
+impl_binary_op!(Add; Mul);

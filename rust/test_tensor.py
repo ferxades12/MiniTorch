@@ -14,9 +14,10 @@ import rs_torch
 
 # Crear un tensor desde numpy
 data = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
-tensor = rs_torch.Tensor(data, requires_grad=True)
+A = rs_torch.Tensor(data, requires_grad=True)
+B = rs_torch.Tensor(data * 2, requires_grad=True)
 
-print(tensor)
-print(f"Is leaf: {tensor.is_leaf}")
-print(f"Requires grad: {tensor.requires_grad}")
-print(f"Data:\n{tensor.numpy()}")
+print(A + B)
+print(f"Is leaf: {A.is_leaf}")
+print(f"Requires grad: {A.requires_grad}")
+print(f"Data:\n{(A*B).numpy()}")

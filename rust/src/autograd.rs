@@ -1,9 +1,10 @@
-use crate::tensor::Tensor;
+use crate::tensor::{Tensor, Device};
 use ndarray::{ArrayD, IxDyn, ArrayViewD, ArrayViewMutD};
 
 
 pub enum BackwardNode{
-    Add(AddBackward)
+    Add(AddBackward),
+    Mul(MulBackward)
 }
 
 
@@ -20,6 +21,29 @@ impl Backward for AddBackward{
     fn apply(&self, grad_output: ArrayViewD<f32>) {
         _update_grad(&self.tensor, &grad_output);
         _update_grad(&self.other, &grad_output);
+    }
+}
+
+pub struct MulBackward{
+    pub tensor: Tensor,
+    pub other: Tensor
+}
+
+impl Backward for MulBackward{
+    fn apply(&self, grad_output: ArrayViewD<f32>) {
+
+         let grad_a = match &*self.other.data {
+            Device::CPU(data_b) => &grad_output * data_b,
+            _ => panic!("Device not implemented")
+        };
+
+        let grad_b = match &*self.other.data {
+            Device::CPU(data_a) => data_a * &grad_output,
+            _ => {panic!("Device not supported")}
+        };
+
+        _update_grad(&self.tensor, &grad_a.view());
+        _update_grad(&self.other, &grad_b.view());
     }
 }
 

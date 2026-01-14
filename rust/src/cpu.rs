@@ -4,7 +4,7 @@ pub fn add_cpu(a: &ArrayViewD<f32>, b: &ArrayViewD<f32>, out: &mut ArrayViewMutD
     azip!((out in out, &a in a, &b in b) *out = a + b);
 }
 
-fn mul_cpu(a: &ArrayViewD<f32>, b: &ArrayViewD<f32>, out: &mut ArrayViewMutD<f32>){
+pub fn mul_cpu(a: &ArrayViewD<f32>, b: &ArrayViewD<f32>, out: &mut ArrayViewMutD<f32>){
     azip!((out in out, &a in a, &b in b) *out = a * b);
 }
 
