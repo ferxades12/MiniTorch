@@ -2,10 +2,10 @@ use std::sync::{Arc, Mutex};
 
 use pyo3::{exceptions::PyNotImplementedError, prelude::*};
 use numpy::{PyArrayDyn, PyReadonlyArrayDyn};
-use ndarray::{ArrayD, IxDyn, ArrayViewD, ArrayViewMutD};
+use ndarray::{Array0, Array1, ArrayD, ArrayViewD, ArrayViewMutD, Axis, IxDyn};
 
 use crate::cpu;
-use crate::autograd::BackwardNode;
+use crate::autograd::{BackwardNode, SumBackward};
 
 type Grad = Arc<Mutex<Option<ArrayD<f32>>>>;
 
@@ -80,6 +80,16 @@ impl Tensor{
         }
     }
 
+    // Getter para grad que retorna numpy array
+    #[getter]
+    fn grad<'py>(&self, py: Python<'py>) -> PyResult<Option<Bound<'py, PyArrayDyn<f32>>>> {
+        let grad_lock = self.grad.lock().unwrap();
+        match &*grad_lock {
+            Some(grad_array) => Ok(Some(PyArrayDyn::from_array(py, grad_array))),
+            None => Ok(None)
+        }
+    }
+
     // Python operator overloads
     fn __add__(&self, rhs: &Tensor) -> PyResult<Tensor> {
         Ok(self + rhs)
@@ -89,14 +99,28 @@ impl Tensor{
         Ok(self * rhs)
     }
 
-    #[pyo3(signature = (grad=None))]
-    fn backward(&self, grad:Option<PyReadonlyArrayDyn<f32>>) -> PyResult<()>{
-        let grad_arc = match grad {
-            Some(g) => new_grad(Some(g.as_array().to_owned())),
-            None => new_grad(None)
-        };
+    #[pyo3(signature = (axis=None))]
+    fn sum(&self, axis:Option<usize>) -> PyResult<Tensor>{
+        /* let ax = match axis {
+            None => None,
+            Some(ax) => Some(Axis(ax))
+        }; */
 
-        self._backward(grad_arc);
+        let ax = axis.map(Axis);
+        let result = self.dispatch_unary_op_with_axes(ax, cpu::sum_cpu, |tensor: Tensor|{
+            BackwardNode::SumBackward(SumBackward { 
+                tensor: tensor, 
+                axis: ax 
+            })
+        });
+
+        Ok(result)
+    }
+
+    #[pyo3(signature = (grad=None))]
+    pub fn backward(&self, grad:Option<PyReadonlyArrayDyn<f32>>) -> PyResult<()>{
+        let grad_view = grad.as_ref().map(|g| g.as_array());
+        self._backward(grad_view);
         Ok(())
     }
     
@@ -174,27 +198,77 @@ impl Tensor{
         }
     }
 
+    // El shape de out es fijo
+    fn dispatch_unary_op<F>(&self, kernel_cpu: fn(&ArrayViewD<f32>, &mut ArrayViewMutD<f32>), make_node:F) -> Tensor 
+    where
+        F:FnOnce(Tensor) -> BackwardNode
+    {
+        let out = match &*self.data {
+            Device::CPU(a) => {
+                let mut out = ArrayD::zeros(IxDyn(&self.shape));
+                kernel_cpu(&a.view(), &mut out.view_mut());
+                Device::CPU(out)
+            }
+            _ => {panic!("Unimplemented");}
+        };
+
+       
+        if self.requires_grad {
+            let grad_fn = Some(Box::new(make_node(self.clone())));
+
+            self.result_tensor_requires_grad(out, None, grad_fn).unwrap()
+        } else {
+            self.result_tensor_no_requires_grad(out).unwrap()
+        }
+    }
+
+    // El shape de out es fijo (Escalar)
+    fn dispatch_unary_op_with_axes<F>(&self, axis: Option<Axis>, kernel_cpu: fn(&ArrayViewD<f32>, Option<Axis>,&mut ArrayViewMutD<f32>), make_node:F) -> Tensor 
+    where
+        F:FnOnce(Tensor) -> BackwardNode
+    {
+        let out = match &*self.data {
+            Device::CPU(a) => {
+                let mut out = ArrayD::zeros(IxDyn(&[])); //IxDyn Ligeramente ineficiente pero no quiero tirarme 6h en mejorarlo
+                kernel_cpu(&a.view(), axis, &mut out.view_mut());
+                Device::CPU(out)
+            }
+            _ => {panic!("Unimplemented");}
+        };
+
+       
+        if self.requires_grad {
+            let grad_fn = Some(Box::new(make_node(self.clone()))); //TODO mirar si es realmente necesario el make_node en caso unario
+
+            self.result_tensor_requires_grad(out, None, grad_fn).unwrap()
+        } else {
+            self.result_tensor_no_requires_grad(out).unwrap()
+        }
+    }
+
     fn numel(&self) -> usize{
         self.shape.iter().fold(1, |acc, &x| acc * x)
     }
 
-    fn  _backward(&self, grad: Grad){
-        let mut grad_lock = grad.lock().unwrap();
-        let grad_owned = grad_lock.take(); // Mueve el valor sin clonar
-
-        if self.numel() != 1 && grad_owned.is_none(){
-            panic!("'grad can be implicitly created only for scalars'");
+    pub fn _backward(&self, grad: Option<ArrayViewD<f32>>){
+        // Validar que grad es Some para tensores no-escalares
+        if self.numel() != 1 && grad.is_none(){
+            panic!("grad can be implicitly created only for scalars");
         }
 
-        let grad = match grad_owned {
-            Some(gradient) => new_grad(Some(gradient)),
-            None => new_grad(Some(ArrayD::ones(IxDyn(&self.shape))))
+        // Usar el grad proporcionado o crear uno de unos
+        let grad_array;
+        let grad_view = match grad {
+            Some(g) => g,
+            None => {
+                grad_array = ArrayD::ones(IxDyn(&self.shape));
+                grad_array.view()
+            }
         };
 
         match self.grad_fn.as_ref() {
             None => panic!("Tensor has no gradient function"),
-            // Arc<Mutex<Option<ArrayD>>> -> MutexGuard<Option<ArrayD>> -> &ArrayD -> ArrayViewD
-            Some(grad_fn) => grad_fn.apply(grad.lock().unwrap().as_ref().unwrap().view())
+            Some(grad_fn) => grad_fn.apply(grad_view)
         }
     }
 }
