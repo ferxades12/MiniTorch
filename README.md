@@ -1,5 +1,8 @@
-This project consist of implementing Pytorch basic functionality, usin only NumPy (the other libs are for /test module)
+This project consist of implementing Pytorch basic functionality, usin only NumPy and CuPy (the other libs are for /test module)
 The objective is to learn how neural networks work internally
+Additionaly, Im building a second backend in Rust, to learn how to use it in a complex project, have a faster backend and compare performance in different configurations (NumPy, CuPy, Rust native, Rust + CUDA)
+
+Disclaimer: AI was used for the test module, documentation, reviewing and information gathering.
 
 ## 🚀 Roadmap
 
@@ -19,7 +22,7 @@ The objective is to learn how neural networks work internally
 
 ## 🚬:
 
-- Meta + kernel design (preparation for Rust) ✅
+- Meta + kernel design (preparation for CUDA) ✅
 - CUDA integration (CuPy) ✅
 - Rust backend 
 - Rust parallelism 
@@ -50,6 +53,7 @@ MiniTorch/
 │ ├── base.py                # Function base class for autograd
 │ └── tensor.py              # Tensor class with autograd
 ├── examples/                 # Usage examples
+├── rust/                     # Rust backend (in progress)
 ├── README.md
 └── requirements.txt
 ```
