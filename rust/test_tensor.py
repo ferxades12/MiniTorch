@@ -21,3 +21,6 @@ print(A + B)
 print(f"Is leaf: {A.is_leaf}")
 print(f"Requires grad: {A.requires_grad}")
 print(f"Data:\n{(A*B).numpy()}")
+
+A.backward()
+print(f"Gradient:\n{A.grad.numpy()}")

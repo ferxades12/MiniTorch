@@ -1,12 +1,24 @@
 use crate::tensor::{Tensor, Device};
-use ndarray::{ArrayD, IxDyn, ArrayViewD, ArrayViewMutD};
+use ndarray::ArrayViewD;
 
+// Define tanto el enum como el metodo apply
+macro_rules! define_backward_nodes {
+    ($($name:ident),* $(,)?) => {
+        pub enum BackwardNode{
+            $($name($name),)*
+        }
 
-pub enum BackwardNode{
-    Add(AddBackward),
-    Mul(MulBackward)
+        impl BackwardNode{
+            pub fn apply(&self, grad_output: ArrayViewD<f32>){
+                match self {
+                    $(BackwardNode::$name(method) => method.apply(grad_output),)*
+                }
+            }
+        }
+    };
 }
 
+define_backward_nodes!(AddBackward, MulBackward);
 
 pub trait Backward{
     fn apply(&self, grad_output: ArrayViewD<f32>);

@@ -7,12 +7,18 @@ use ndarray::{ArrayD, IxDyn, ArrayViewD, ArrayViewMutD};
 use crate::cpu;
 use crate::autograd::BackwardNode;
 
+type Grad = Arc<Mutex<Option<ArrayD<f32>>>>;
+
+pub fn new_grad(grad: Option<ArrayD<f32>>)-> Grad {
+    Arc::new(Mutex::new(grad))
+}
+
 
 #[pyclass] // para exponer el struct a Python
 pub struct Tensor{
     pub data: Arc<Device>,  
     //Mutex para tener varias referencias mutables. Arc para pasar varias referencias de forma eficiente
-    pub grad : Arc<Mutex<Option<ArrayD<f32>>>>,
+    pub grad : Grad,
     pub grad_fn : Option<Box<BackwardNode>>,
     pub shape: Vec<usize>, // Para futura implementacion de CUDA
     #[pyo3(get)]  // Permite leer is_leaf desde Python
@@ -58,7 +64,7 @@ impl Tensor{
 
         Ok(Tensor {
             data : Arc::new(Device::CPU(array)),
-            grad : Arc::new(Mutex::new(grad)),
+            grad : new_grad(grad),
             grad_fn : None,
             shape: shape,
             is_leaf : true,
@@ -82,6 +88,17 @@ impl Tensor{
     fn __mul__(&self, rhs: &Tensor) -> PyResult<Tensor> {
         Ok(self * rhs)
     }
+
+    #[pyo3(signature = (grad=None))]
+    fn backward(&self, grad:Option<PyReadonlyArrayDyn<f32>>) -> PyResult<()>{
+        let grad_arc = match grad {
+            Some(g) => new_grad(Some(g.as_array().to_owned())),
+            None => new_grad(None)
+        };
+
+        self._backward(grad_arc);
+        Ok(())
+    }
     
 }
 
@@ -97,7 +114,7 @@ impl Tensor{
 
         Ok(Tensor {
             data : Arc::new(data),
-            grad : Arc::new(Mutex::new(grad)),
+            grad : new_grad(grad),
             grad_fn : grad_fn,
             shape: shape,
             is_leaf : false,
@@ -113,7 +130,7 @@ impl Tensor{
 
         Ok(Tensor {
             data : Arc::new(data),
-            grad : Arc::new(Mutex::new(None)),
+            grad : new_grad(None),
             grad_fn : None,
             shape: shape,
             is_leaf : true,
@@ -156,6 +173,30 @@ impl Tensor{
             self.result_tensor_no_requires_grad(out).unwrap()
         }
     }
+
+    fn numel(&self) -> usize{
+        self.shape.iter().fold(1, |acc, &x| acc * x)
+    }
+
+    fn  _backward(&self, grad: Grad){
+        let mut grad_lock = grad.lock().unwrap();
+        let grad_owned = grad_lock.take(); // Mueve el valor sin clonar
+
+        if self.numel() != 1 && grad_owned.is_none(){
+            panic!("'grad can be implicitly created only for scalars'");
+        }
+
+        let grad = match grad_owned {
+            Some(gradient) => new_grad(Some(gradient)),
+            None => new_grad(Some(ArrayD::ones(IxDyn(&self.shape))))
+        };
+
+        match self.grad_fn.as_ref() {
+            None => panic!("Tensor has no gradient function"),
+            // Arc<Mutex<Option<ArrayD>>> -> MutexGuard<Option<ArrayD>> -> &ArrayD -> ArrayViewD
+            Some(grad_fn) => grad_fn.apply(grad.lock().unwrap().as_ref().unwrap().view())
+        }
+    }
 }
 
 
@@ -171,7 +212,7 @@ macro_rules! impl_binary_op {
                             stringify!([<$trait:lower>]), 
                             rhs, 
                             cpu::[<$trait:lower _cpu>],
-                            |a: Tensor, b: Tensor| BackwardNode::$trait(
+                            |a: Tensor, b: Tensor| BackwardNode::[<$trait Backward>](
                                 crate::autograd::[<$trait Backward>] { tensor: a, other: b }
                             )
                         )
