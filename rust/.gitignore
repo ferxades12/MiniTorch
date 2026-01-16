@@ -1,4 +1,5 @@
 /target
+rustfmt.toml
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -41,29 +42,6 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
-
-# Translations
-*.mo
-
-# Mr Developer
-.mr.developer.cfg
-.project
-.pydevproject
-
-# Rope
-.ropeproject
-
-# Django stuff:
-*.log
-*.pot
-
-.DS_Store
-
-# Sphinx documentation
-docs/_build/
-
-# PyCharm
-.idea/
 
 # VSCode
 .vscode/
