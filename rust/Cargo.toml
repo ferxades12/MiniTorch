@@ -1,11 +1,11 @@
 [package]
-name = "rs_torch"
+name = "rustorch"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
 # "cdylib" es necesario para que Rust genere una biblioteca dinámica compatible con Python
-name = "rs_torch"
+name = "rustorch"
 crate-type = ["cdylib"]
 
 [[bin]]
