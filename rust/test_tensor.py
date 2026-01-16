@@ -1,5 +1,5 @@
 """
-Script de prueba para el módulo rs_torch
+Script de prueba para el módulo rustorch
 
 Para compilar e instalar:
     pip install maturin
@@ -10,12 +10,12 @@ Para solo compilar:
 """
 
 import numpy as np
-import rs_torch
+import rustorch as rt
 
 # Crear un tensor desde numpy
 data = np.array([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
-A = rs_torch.Tensor(data, requires_grad=True)
-B = rs_torch.Tensor(data * 2, requires_grad=True)
+A = rt.Tensor(data, requires_grad=True)
+B = rt.Tensor(data * 2, requires_grad=True)
 C = A*B
 print(A + B)
 print(f"A - Is leaf: {A.is_leaf}, Requires grad: {A.requires_grad}")
