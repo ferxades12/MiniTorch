@@ -1,3 +1,4 @@
+use core::fmt;
 use std::sync::{Arc, Mutex};
 
 use ndarray::{Array0, Array1, ArrayD, ArrayViewD, ArrayViewMutD, Axis, IxDyn};
@@ -31,6 +32,15 @@ pub enum Device {
     CPU(ArrayD<f32>),
     CUDA(bool),
 }
+impl fmt::Debug for Device {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Device::CPU(_) => write!(f, "CPU"),
+            Device::CUDA(_) => write!(f, "CUDA"),
+        }
+    }
+}
+
 impl Clone for Tensor {
     fn clone(&self) -> Self {
         Tensor {
