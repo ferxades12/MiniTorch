@@ -1,23 +1,23 @@
-use ndarray::{arr0, azip, linalg::Dot, ArrayD, ArrayViewD, ArrayViewMutD, Axis, IxDyn};
+use ndarray::{azip, ArrayViewD, ArrayViewMutD, Axis};
 use numpy::Ix2;
 
-pub fn add_cpu(a: &ArrayViewD<f32>, b: &ArrayViewD<f32>, out: &mut ArrayViewMutD<f32>) {
+pub fn add_cpu(a: ArrayViewD<f32>, b: ArrayViewD<f32>, out: ArrayViewMutD<f32>) {
     azip!((out in out, &a in a, &b in b) *out = a + b);
 }
 
-pub fn mul_cpu(a: &ArrayViewD<f32>, b: &ArrayViewD<f32>, out: &mut ArrayViewMutD<f32>) {
+pub fn mul_cpu(a: ArrayViewD<f32>, b: ArrayViewD<f32>, out: ArrayViewMutD<f32>) {
     azip!((out in out, &a in a, &b in b) *out = a * b);
 }
 
-pub fn sub_cpu(a: &ArrayViewD<f32>, b: &ArrayViewD<f32>, out: &mut ArrayViewMutD<f32>) {
+pub fn sub_cpu(a: ArrayViewD<f32>, b: ArrayViewD<f32>, out: ArrayViewMutD<f32>) {
     azip!((out in out, &a in a, &b in b) *out = a - b);
 }
 
-pub fn pow_cpu(a: &ArrayViewD<f32>, b: &ArrayViewD<f32>, out: &mut ArrayViewMutD<f32>) {
+pub fn pow_cpu(a: ArrayViewD<f32>, b: ArrayViewD<f32>, out: ArrayViewMutD<f32>) {
     azip!((out in out, &a in a, &b in b) *out = a.powf(b));
 }
 
-pub fn dot_cpu(a: &ArrayViewD<f32>, b: &ArrayViewD<f32>, out: &mut ArrayViewMutD<f32>) {
+pub fn dot_cpu(a: ArrayViewD<f32>, b: ArrayViewD<f32>, out: ArrayViewMutD<f32>) {
     //out.assign(&a.dot(b));
     let a_shape = a.shape();
     let b_shape = b.shape();
@@ -40,11 +40,11 @@ pub fn dot_cpu(a: &ArrayViewD<f32>, b: &ArrayViewD<f32>, out: &mut ArrayViewMutD
     ndarray::linalg::general_mat_mul(1.0, &a_2d, &b_2d, 0.0, &mut out_2d);
 }
 
-pub fn div_cpu(a: &ArrayViewD<f32>, b: &ArrayViewD<f32>, out: &mut ArrayViewMutD<f32>) {
+pub fn div_cpu(a: ArrayViewD<f32>, b: ArrayViewD<f32>, out: ArrayViewMutD<f32>) {
     azip!((out in out, &a in a, &b in b) *out = a / b);
 }
 
-pub fn sum_cpu(a: &ArrayViewD<f32>, axis: Option<Axis>, out: &mut ArrayViewMutD<f32>) {
+pub fn sum_cpu(a: ArrayViewD<f32>, axis: Option<Axis>, mut out: ArrayViewMutD<f32>) {
     match axis {
         None => {
             out.fill(a.sum());
@@ -55,6 +55,10 @@ pub fn sum_cpu(a: &ArrayViewD<f32>, axis: Option<Axis>, out: &mut ArrayViewMutD<
     }
 }
 
-pub fn abs_cpu(a: &ArrayViewD<f32>, out: &mut ArrayViewMutD<f32>) {
+pub fn abs_cpu(a: ArrayViewD<f32>, out: ArrayViewMutD<f32>) {
     azip!((out in out, &a in a) *out = a.abs());
+}
+
+pub fn transpose_cpu(a: ArrayViewD<f32>, mut out: ArrayViewMutD<f32>) {
+    out.assign(&a.t());
 }

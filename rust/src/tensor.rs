@@ -1,7 +1,7 @@
 use core::fmt;
 use std::sync::{Arc, Mutex};
 
-use ndarray::{Array0, Array1, ArrayD, ArrayViewD, ArrayViewMutD, Axis, IxDyn};
+use ndarray::{ArrayD, ArrayViewD, ArrayViewMutD, Axis, IxDyn};
 use numpy::{PyArrayDyn, PyReadonlyArrayDyn};
 use pyo3::{exceptions::PyNotImplementedError, prelude::*};
 
@@ -191,7 +191,7 @@ impl Tensor {
         &self,
         method: &str,
         rhs: &Tensor,
-        kernel_cpu: fn(&ArrayViewD<f32>, &ArrayViewD<f32>, &mut ArrayViewMutD<f32>),
+        kernel_cpu: fn(ArrayViewD<f32>, ArrayViewD<f32>, ArrayViewMutD<f32>),
         make_node: F,
     ) -> Tensor
     where
@@ -204,7 +204,7 @@ impl Tensor {
         let out = match (&*self.data, &*rhs.data) {
             (Device::CPU(a), Device::CPU(b)) => {
                 let mut out = ArrayD::zeros(IxDyn(&self.shape));
-                kernel_cpu(&a.view(), &b.view(), &mut out.view_mut());
+                kernel_cpu(a.view(), b.view(), out.view_mut());
                 Device::CPU(out)
             }
             _ => {
@@ -254,7 +254,7 @@ impl Tensor {
     fn dispatch_unary_op_with_axes<F>(
         &self,
         axis: Option<Axis>,
-        kernel_cpu: fn(&ArrayViewD<f32>, Option<Axis>, &mut ArrayViewMutD<f32>),
+        kernel_cpu: fn(ArrayViewD<f32>, Option<Axis>, ArrayViewMutD<f32>),
         make_node: F,
     ) -> Tensor
     where
@@ -274,7 +274,7 @@ impl Tensor {
                 };
 
                 let mut out = ArrayD::zeros(IxDyn(&out_shape));
-                kernel_cpu(&a.view(), axis, &mut out.view_mut());
+                kernel_cpu(a.view(), axis, out.view_mut());
                 Device::CPU(out)
             }
             _ => {
@@ -365,4 +365,4 @@ macro_rules! impl_binary_op {
     };
 }
 
-impl_binary_op!(Add; Mul);
+impl_binary_op!(Add; Mul; Sub); //TODO pow
