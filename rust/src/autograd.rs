@@ -2,7 +2,7 @@ use crate::{
     cpu,
     tensor::{Device, Tensor},
 };
-use ndarray::{ArrayD, ArrayViewD, Axis, CowArray, IxDyn};
+use ndarray::{azip, ArrayD, ArrayViewD, Axis, CowArray, IxDyn};
 use numpy::Ix2;
 
 // Define tanto el enum como el metodo apply
@@ -30,6 +30,8 @@ define_backward_nodes!(
     DotBackward,
     DivBackward,
     SumBackward,
+    AbsBackward,
+    TransposeBackward
 );
 
 pub trait Backward {
@@ -66,6 +68,27 @@ macro_rules! implement_bitwise_backward {
 
                 _update_grad(&self.tensor, grad_a);
                 _update_grad(&self.other, grad_b);
+            }
+        }
+    };
+}
+
+macro_rules! implement_unary_backward {
+    ($name:ident, $func:expr) => {
+        pub struct $name {
+            pub tensor: Tensor,
+        }
+
+        impl Backward for $name {
+            fn apply(&self, grad_output: ArrayViewD<f32>) {
+                let grad = match &*self.tensor.data {
+                    Device::CPU(data) => CowArray::from($func(data, grad_output)),
+                    _ => {
+                        panic!("Dispositivo no soportado: {:?}", &*self.tensor.data);
+                    }
+                };
+
+                _update_grad(&self.tensor, grad);
             }
         }
     };
@@ -157,6 +180,17 @@ impl Backward for SumBackward {
         _update_grad(&self.tensor, CowArray::from(grad));
     }
 }
+
+implement_unary_backward!(AbsBackward, |data: &ArrayD<f32>, grad_output| {
+    let mut out = ArrayD::zeros(data.raw_dim());
+    azip!((out in &mut out, &d in data) *out = (d > 0.0) as i32 as f32 - (d < 0.0) as i32 as f32);
+    out * grad_output
+});
+
+implement_unary_backward!(
+    TransposeBackward,
+    |_data: &ArrayD<f32>, grad_output: ArrayViewD<f32>| { grad_output.t().to_owned() }
+);
 
 fn _update_grad(tensor: &Tensor, grad: CowArray<f32, IxDyn>) {
     if !tensor.requires_grad {
