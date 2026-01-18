@@ -164,47 +164,26 @@ impl Tensor {
 }
 
 impl Tensor {
-    fn result_tensor_requires_grad(
+    fn dispatch_scalar_op<F>(
         &self,
-        data: Device,
-        grad: Option<ArrayD<f32>>,
-        grad_fn: Option<Arc<BackwardNode>>,
-    ) -> Result<Tensor, String> {
-        let shape = match &data {
-            Device::CPU(array) => array.shape().to_vec(),
-            _ => {
-                return Err("Not implemented".into());
-            }
+        rhs: f32,
+        reverse: bool,
+        kernel_cpu: fn(ArrayViewD<f32>, ArrayViewD<f32>, ArrayViewMutD<f32>),
+        make_node: F,
+    ) -> Tensor
+    where
+        F: FnOnce(Tensor, Tensor) -> BackwardNode,
+    {
+        let rhs_tensor = match *self.data{
+            Device::CPU(_) => result_tensor_no_requires_grad(Device::CPU(ArrayD::from_elem(IxDyn(&[]), rhs))).unwrap(),
+            Device::CUDA(_) => panic!("CUDA not implemented")
         };
 
-        let grad = grad.or_else(|| None);
-
-        Ok(Tensor {
-            data: Arc::new(data),
-            grad: new_grad(grad),
-            grad_fn: grad_fn,
-            shape: shape,
-            is_leaf: false,
-            requires_grad: true,
-        })
-    }
-
-    fn result_tensor_no_requires_grad(&self, data: Device) -> Result<Tensor, String> {
-        let shape = match &data {
-            Device::CPU(array) => array.shape().to_vec(),
-            _ => {
-                return Err("Not implemented".into());
-            }
-        };
-
-        Ok(Tensor {
-            data: Arc::new(data),
-            grad: new_grad(None),
-            grad_fn: None,
-            shape: shape,
-            is_leaf: true,
-            requires_grad: false,
-        })
+        if reverse {
+            rhs_tensor.dispatch_binary_op(self, kernel_cpu, make_node)
+        } else {
+            self.dispatch_binary_op(&rhs_tensor, kernel_cpu, make_node)
+        }
     }
 
     fn dispatch_binary_op<F>(
@@ -241,9 +220,9 @@ impl Tensor {
         if self.requires_grad || rhs.requires_grad {
             let grad_fn = Some(Arc::new(make_node(self.clone(), rhs.clone())));
 
-            self.result_tensor_requires_grad(out, None, grad_fn).unwrap()
+            result_tensor_requires_grad(out, None, grad_fn).unwrap()
         } else {
-            self.result_tensor_no_requires_grad(out).unwrap()
+            result_tensor_no_requires_grad(out).unwrap()
         }
     }
 
@@ -270,9 +249,9 @@ impl Tensor {
         if self.requires_grad {
             let grad_fn = Some(Arc::new(make_node(self.clone())));
 
-            self.result_tensor_requires_grad(out, None, grad_fn).unwrap()
+            result_tensor_requires_grad(out, None, grad_fn).unwrap()
         } else {
-            self.result_tensor_no_requires_grad(out).unwrap()
+            result_tensor_no_requires_grad(out).unwrap()
         }
     }
 
@@ -310,9 +289,9 @@ impl Tensor {
         if self.requires_grad {
             let grad_fn = Some(Arc::new(make_node(self.clone()))); //TODO mirar si es realmente necesario el make_node en caso unario
 
-            self.result_tensor_requires_grad(out, None, grad_fn).unwrap()
+            result_tensor_requires_grad(out, None, grad_fn).unwrap()
         } else {
-            self.result_tensor_no_requires_grad(out).unwrap()
+            result_tensor_no_requires_grad(out).unwrap()
         }
     }
 
@@ -349,7 +328,104 @@ impl Tensor {
     }
 }
 
-macro_rules! impl_binary_op {
+fn result_tensor_requires_grad(
+    data: Device,
+    grad: Option<ArrayD<f32>>,
+    grad_fn: Option<Arc<BackwardNode>>,
+) -> Result<Tensor, String> {
+    let shape = match &data {
+        Device::CPU(array) => array.shape().to_vec(),
+        _ => {
+            return Err("Not implemented".into());
+        }
+    };
+
+    let grad = grad.or_else(|| None);
+
+    Ok(Tensor {
+        data: Arc::new(data),
+        grad: new_grad(grad),
+        grad_fn: grad_fn,
+        shape: shape,
+        is_leaf: false,
+        requires_grad: true,
+    })
+}
+
+fn result_tensor_no_requires_grad(data: Device) -> Result<Tensor, String> {
+    let shape = match &data {
+        Device::CPU(array) => array.shape().to_vec(),
+        _ => {
+            return Err("Not implemented".into());
+        }
+    };
+
+    Ok(Tensor {
+        data: Arc::new(data),
+        grad: new_grad(None),
+        grad_fn: None,
+        shape: shape,
+        is_leaf: true,
+        requires_grad: false,
+    })
+}
+
+macro_rules!  impl_scalar_op{
+    ($($trait:ident, $t:ty);*) => {
+        $(
+            paste::paste! {
+                // &Tensor op scalar
+                impl std::ops::$trait<$t> for &Tensor {
+                    type Output = Tensor;
+                    fn [<$trait:lower>](self, rhs: $t) -> Self::Output {
+                        self.dispatch_scalar_op(
+                            rhs as f32,
+                            false,
+                            cpu::[<$trait:lower _cpu>],
+                            |a: Tensor, b: Tensor| BackwardNode::[<$trait Backward>](
+                                crate::autograd::[<$trait Backward>] { tensor: a, other: b }
+                            )
+                        )
+                    }
+                }
+
+                //Tensor op scalar
+                impl std::ops::$trait<$t> for Tensor {
+                    type Output = Tensor;
+                    fn [<$trait:lower>](self, rhs: $t) -> Self::Output {
+                        (&self).[<$trait:lower>](rhs as f32)
+                    }
+                }
+
+                //scalar op &Tensor
+                impl std::ops::$trait<&Tensor> for $t {
+                    type Output = Tensor;
+                    fn [<$trait:lower>](self, rhs: &Tensor) -> Self::Output {
+                        rhs.dispatch_scalar_op(
+                            self as f32,
+                            true,
+                            cpu::[<$trait:lower _cpu>],
+                            |a: Tensor, b: Tensor| BackwardNode::[<$trait Backward>](
+                                crate::autograd::[<$trait Backward>] { tensor: a, other: b }
+                            )
+                        )
+                    }
+                }
+
+                //scalar op Tensor
+                impl std::ops::$trait<Tensor> for $t {
+                    type Output = Tensor;
+                    fn [<$trait:lower>](self, rhs: Tensor) -> Self::Output {
+                        rhs.[<$trait:lower>](self as f32)
+                    }
+                }
+            }
+        )*
+    };
+}
+
+
+macro_rules! impl_tensor_op {
     ($($trait:ident);*) => {
         $( //Multiples llamadas
             paste::paste! { // Para pasar Add en vez de (Add, add, AddBackward)
@@ -391,6 +467,20 @@ macro_rules! impl_binary_op {
                     }
                 }
             }
+        )*
+    };
+}
+
+macro_rules! impl_binary_op {
+    ($($trait:ident);*) => {
+        $(
+            impl_tensor_op!($trait);
+            impl_scalar_op!($trait, f32);
+            impl_scalar_op!($trait, i32);
+            impl_scalar_op!($trait, i64);
+            impl_scalar_op!($trait, u32);
+            impl_scalar_op!($trait, u64);
+            impl_scalar_op!($trait, f64);
         )*
     };
 }
