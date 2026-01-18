@@ -7,6 +7,7 @@ use pyo3::{exceptions::PyNotImplementedError, prelude::*};
 
 use crate::autograd::{BackwardNode, SumBackward};
 use crate::cpu;
+use crate::util;
 
 type Grad = Arc<Mutex<Option<ArrayD<f32>>>>;
 
@@ -115,18 +116,17 @@ impl Tensor {
         Ok(self / rhs)
     }
 
-    fn __abs__(&self) -> PyResult<Tensor> {
+    fn abs(&self) -> PyResult<Tensor> {
         Ok(self.clone()._abs())
     }
 
-    fn transpose(&self) -> PyResult<Tensor> {
+    fn t(&self) -> PyResult<Tensor> {
         Ok(self.clone()._transpose())
     }
 
     fn __pow__(&self, rhs: &Tensor, _modulo: Option<&Tensor>) -> PyResult<Tensor> {
         Ok(self.clone()._pow(rhs))
     }
-
     #[pyo3(signature = (axis=None))]
     fn sum(&self, axis: Option<usize>) -> PyResult<Tensor> {
         /* let ax = match axis {
@@ -209,7 +209,6 @@ impl Tensor {
 
     fn dispatch_binary_op<F>(
         &self,
-        method: &str,
         rhs: &Tensor,
         kernel_cpu: fn(ArrayViewD<f32>, ArrayViewD<f32>, ArrayViewMutD<f32>),
         make_node: F,
@@ -217,14 +216,21 @@ impl Tensor {
     where
         F: FnOnce(Tensor, Tensor) -> BackwardNode,
     {
-        if self.shape != rhs.shape {
-            panic!("Shapes dont match for op {}", method);
-        }
-
         let out = match (&*self.data, &*rhs.data) {
             (Device::CPU(a), Device::CPU(b)) => {
-                let mut out = ArrayD::zeros(IxDyn(&self.shape));
-                kernel_cpu(a.view(), b.view(), out.view_mut());
+                // Broadcasting
+                let shape;
+                let (data_a, data_b) = if a.shape() != b.shape() {
+                    shape = util::broadcast_shapes(a.shape(), b.shape()).expect("Las formas de los tensores no son compatibles para broadcasting");
+
+                    (a.broadcast(shape.clone()).unwrap(), b.broadcast(shape.clone()).unwrap())
+                } else {
+                    shape = a.shape().to_vec();
+                    (a.view(), b.view())
+                };
+
+                let mut out = ArrayD::zeros(IxDyn(&shape));
+                kernel_cpu(data_a, data_b, out.view_mut());
                 Device::CPU(out)
             }
             _ => {
@@ -311,14 +317,9 @@ impl Tensor {
     }
 
     fn _pow(self, rhs: &Tensor) -> Tensor {
-        self.dispatch_binary_op(
-            stringify!([<$trait:lower>]),
-            rhs,
-            cpu::pow_cpu,
-            |a: Tensor, b: Tensor| {
-                BackwardNode::PowBackward(crate::autograd::PowBackward { tensor: a, other: b })
-            },
-        )
+        self.dispatch_binary_op(rhs, cpu::pow_cpu, |a: Tensor, b: Tensor| {
+            BackwardNode::PowBackward(crate::autograd::PowBackward { tensor: a, other: b })
+        })
     }
 
     fn numel(&self) -> usize {
@@ -357,7 +358,6 @@ macro_rules! impl_binary_op {
                     type Output = Tensor;
                     fn [<$trait:lower>](self, rhs: &Tensor) -> Self::Output {
                         self.dispatch_binary_op(
-                            stringify!([<$trait:lower>]),
                             rhs,
                             cpu::[<$trait:lower _cpu>],
                             |a: Tensor, b: Tensor| BackwardNode::[<$trait Backward>](
