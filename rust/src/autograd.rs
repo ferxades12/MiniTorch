@@ -1,5 +1,9 @@
-use crate::tensor::{Device, Tensor};
+use crate::{
+    cpu,
+    tensor::{Device, Tensor},
+};
 use ndarray::{ArrayD, ArrayViewD, Axis, CowArray, IxDyn};
+use numpy::Ix2;
 
 // Define tanto el enum como el metodo apply
 macro_rules! define_backward_nodes {
@@ -18,7 +22,15 @@ macro_rules! define_backward_nodes {
     };
 }
 
-define_backward_nodes!(AddBackward, MulBackward, SubBackward, DivBackward, SumBackward);
+define_backward_nodes!(
+    AddBackward,
+    MulBackward,
+    SubBackward,
+    PowBackward,
+    DotBackward,
+    DivBackward,
+    SumBackward,
+);
 
 pub trait Backward {
     fn apply(&self, grad_output: ArrayViewD<f32>);
@@ -75,6 +87,43 @@ implement_bitwise_backward!(
     SubBackward,
     |_data_a, _data_b, grad_output| grad_output,
     |_data_a, _data_b, grad_output: ArrayViewD<f32>| -&grad_output
+);
+
+implement_bitwise_backward!(
+    PowBackward,
+    |data_a: &ArrayD<f32>, data_b: &ArrayD<f32>, grad_output| {
+        let mut out = ArrayD::zeros(data_a.raw_dim());
+        cpu::pow_cpu(data_a.view(), (data_b - 1.0).view(), out.view_mut());
+        data_b * out * grad_output
+    },
+    |_data_a, _data_b, grad_output: ArrayViewD<f32>| -&grad_output //TODO
+);
+
+implement_bitwise_backward!(
+    DotBackward,
+    |_data_a: &ArrayD<f32>, data_b: &ArrayD<f32>, grad_output: ArrayViewD<f32>| {
+        let t = data_b.t();
+        let b = t.shape();
+        let g = grad_output.shape();
+
+        let a_shape = get_dot_shape(g, b);
+
+        let mut out = ArrayD::zeros(IxDyn(&a_shape));
+        cpu::dot_cpu(grad_output, t, out.view_mut());
+        out
+    },
+    |data_a: &ArrayD<f32>, _data_b: &ArrayD<f32>, grad_output: ArrayViewD<f32>| {
+        let t = data_a.t();
+        let a = t.shape();
+        let g = grad_output.shape();
+
+        let b_shape = get_dot_shape(a, g);
+
+        let mut out = ArrayD::zeros(IxDyn(&b_shape));
+
+        cpu::dot_cpu(t, grad_output, out.view_mut());
+        out
+    }
 );
 
 implement_bitwise_backward!(
@@ -136,5 +185,27 @@ fn _update_grad(tensor: &Tensor, grad: CowArray<f32, IxDyn>) {
         //tensor.grad_fn.backward(grad);
 
         tensor._backward(Some(grad.view()));
+    }
+}
+
+fn get_dot_shape(a: &[usize], b: &[usize]) -> Vec<usize> {
+    match (a.len(), b.len()) {
+        (1, 1) => {
+            assert!(a[0] == b[0]);
+            vec![]
+        }
+        (2, 1) => {
+            assert!(a[1] == b[0]);
+            vec![a[0]]
+        }
+        (1, 2) => {
+            assert!(a[0] == b[0]);
+            vec![b[1]]
+        }
+        (2, 2) => {
+            assert!(a[1] == b[0]);
+            vec![a[0], b[1]]
+        }
+        _ => panic!("Dot product only supports 1D or 2D tensors."),
     }
 }
