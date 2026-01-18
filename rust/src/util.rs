@@ -1,3 +1,5 @@
+use ndarray::{ArrayD, Axis, CowArray, IxDyn};
+
 pub fn broadcast_shapes(a:&[usize], b:&[usize]) -> Option<Vec<usize>>{
     let mut output = Vec::new();
     let mut i1 = a.iter().rev();
@@ -46,4 +48,23 @@ pub fn get_dot_shape(a: &[usize], b: &[usize]) -> Vec<usize> {
         }
         _ => panic!("Dot product only supports 1D or 2D tensors."),
     }
+}
+
+
+pub fn unbroadcast(grad:CowArray<f32, IxDyn>, target_shape:Vec<usize>) -> CowArray<f32, IxDyn>{
+    let extra_dims = grad.shape().len() - target_shape.len();
+    let reduced_grad = (0..extra_dims).fold(grad.into_owned(), |acc, _|{
+        acc.sum_axis(Axis(0))
+    });
+
+    let result = target_shape.iter().enumerate().fold(reduced_grad, |acc, (i, &dim)|{
+        if dim == 1{
+            //sum() con keepdims = True
+            acc.sum_axis(Axis(i)).insert_axis(Axis(i))
+        }else {
+            acc
+        }
+    });
+    
+    CowArray::from(result)
 }

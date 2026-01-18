@@ -3,7 +3,7 @@ use crate::{
     tensor::{Device, Tensor},
 };
 use ndarray::{azip, ArrayD, ArrayViewD, Axis, CowArray, IxDyn};
-use numpy::Ix2;
+use crate::util;
 
 // Define tanto el enum como el metodo apply
 macro_rules! define_backward_nodes {
@@ -129,7 +129,7 @@ implement_bitwise_backward!(
         let b = t.shape();
         let g = grad_output.shape();
 
-        let a_shape = get_dot_shape(g, b);
+        let a_shape = util::get_dot_shape(g, b);
 
         let mut out = ArrayD::zeros(IxDyn(&a_shape));
         cpu::dot_cpu(grad_output, t, out.view_mut());
@@ -140,7 +140,7 @@ implement_bitwise_backward!(
         let a = t.shape();
         let g = grad_output.shape();
 
-        let b_shape = get_dot_shape(a, g);
+        let b_shape = util::get_dot_shape(a, g);
 
         let mut out = ArrayD::zeros(IxDyn(&b_shape));
 
@@ -197,9 +197,11 @@ fn _update_grad(tensor: &Tensor, grad: CowArray<f32, IxDyn>) {
         return;
     }
 
-    if tensor.shape != grad.shape() {
-        //TODO unbroadcast
-    }
+    let gradient = if tensor.shape != grad.shape() {
+        util::unbroadcast(grad, tensor.shape.clone())
+    } else {
+        grad
+    };
 
     if tensor.is_leaf {
         // Tomamos referencia mutable (gracias a Mutex)
@@ -209,37 +211,14 @@ fn _update_grad(tensor: &Tensor, grad: CowArray<f32, IxDyn>) {
         match grad_lock.as_mut() {
             // la impl del trait addasign esta definido como *a += &view, y no toma ownership de view
             Some(tensor_grad) => {
-                *tensor_grad += &grad.view();
+                *tensor_grad += &gradient.view();
             }
             None => {
-                *grad_lock = Some(grad.into_owned());
+                *grad_lock = Some(gradient.into_owned());
             }
         }
     } else {
-        //tensor.grad_fn.backward(grad);
-
-        tensor._backward(Some(grad.view()));
+        tensor._backward(Some(gradient.view()));
     }
 }
 
-fn get_dot_shape(a: &[usize], b: &[usize]) -> Vec<usize> {
-    match (a.len(), b.len()) {
-        (1, 1) => {
-            assert!(a[0] == b[0]);
-            vec![]
-        }
-        (2, 1) => {
-            assert!(a[1] == b[0]);
-            vec![a[0]]
-        }
-        (1, 2) => {
-            assert!(a[0] == b[0]);
-            vec![b[1]]
-        }
-        (2, 2) => {
-            assert!(a[1] == b[0]);
-            vec![a[0], b[1]]
-        }
-        _ => panic!("Dot product only supports 1D or 2D tensors."),
-    }
-}
