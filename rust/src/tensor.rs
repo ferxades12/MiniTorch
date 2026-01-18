@@ -107,6 +107,26 @@ impl Tensor {
         Ok(self * rhs)
     }
 
+    fn __sub__(&self, rhs: &Tensor) -> PyResult<Tensor> {
+        Ok(self - rhs)
+    }
+
+    fn __truediv__(&self, rhs: &Tensor) -> PyResult<Tensor> {
+        Ok(self / rhs)
+    }
+
+    fn __abs__(&self) -> PyResult<Tensor> {
+        Ok(self.clone()._abs())
+    }
+
+    fn transpose(&self) -> PyResult<Tensor> {
+        Ok(self.clone()._transpose())
+    }
+
+    fn __pow__(&self, rhs: &Tensor, _modulo: Option<&Tensor>) -> PyResult<Tensor> {
+        Ok(self.clone()._pow(rhs))
+    }
+
     #[pyo3(signature = (axis=None))]
     fn sum(&self, axis: Option<usize>) -> PyResult<Tensor> {
         /* let ax = match axis {
@@ -224,7 +244,7 @@ impl Tensor {
     // El shape de out es fijo
     fn dispatch_unary_op<F>(
         &self,
-        kernel_cpu: fn(&ArrayViewD<f32>, &mut ArrayViewMutD<f32>),
+        kernel_cpu: fn(ArrayViewD<f32>, ArrayViewMutD<f32>),
         make_node: F,
     ) -> Tensor
     where
@@ -233,7 +253,7 @@ impl Tensor {
         let out = match &*self.data {
             Device::CPU(a) => {
                 let mut out = ArrayD::zeros(IxDyn(&self.shape));
-                kernel_cpu(&a.view(), &mut out.view_mut());
+                kernel_cpu(a.view(), out.view_mut());
                 Device::CPU(out)
             }
             _ => {
@@ -250,7 +270,6 @@ impl Tensor {
         }
     }
 
-    // El shape de out es fijo (Escalar)
     fn dispatch_unary_op_with_axes<F>(
         &self,
         axis: Option<Axis>,
@@ -289,6 +308,17 @@ impl Tensor {
         } else {
             self.result_tensor_no_requires_grad(out).unwrap()
         }
+    }
+
+    fn _pow(self, rhs: &Tensor) -> Tensor {
+        self.dispatch_binary_op(
+            stringify!([<$trait:lower>]),
+            rhs,
+            cpu::pow_cpu,
+            |a: Tensor, b: Tensor| {
+                BackwardNode::PowBackward(crate::autograd::PowBackward { tensor: a, other: b })
+            },
+        )
     }
 
     fn numel(&self) -> usize {
@@ -365,4 +395,25 @@ macro_rules! impl_binary_op {
     };
 }
 
-impl_binary_op!(Add; Mul; Sub); //TODO pow
+macro_rules! impl_unary_op {
+    ($($trait:ident);*) => {
+        $( //Multiples llamadas
+            paste::paste! { // Para pasar Add en vez de (Add, add, AddBackward)
+                impl Tensor{
+                    pub fn [<_ $trait:lower>](self) -> Tensor {
+                        self.dispatch_unary_op(
+                            cpu::[<$trait:lower _cpu>],
+                            |a: Tensor| BackwardNode::[<$trait Backward>](
+                                crate::autograd::[<$trait Backward>] { tensor: a }
+                            )
+                        )
+                    }
+                }
+            }
+        )*
+    };
+}
+
+impl_binary_op!(Add; Mul; Sub; Div);
+
+impl_unary_op!(Abs; Transpose);
