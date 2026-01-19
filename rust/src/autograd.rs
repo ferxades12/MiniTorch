@@ -114,12 +114,31 @@ implement_bitwise_backward!(
 
 implement_bitwise_backward!(
     PowBackward,
-    |data_a: &ArrayD<f32>, data_b: &ArrayD<f32>, grad_output| {
-        let mut out = ArrayD::zeros(data_a.raw_dim());
-        cpu::pow_cpu(data_a.view(), (data_b - 1.0).view(), out.view_mut());
-        data_b * out * grad_output
+    |data_a: &ArrayD<f32>, data_b: &ArrayD<f32>, grad_output: ArrayViewD<f32>| {
+        // Broadcast data_a and data_b to match grad_output shape
+        let broadcast_shape = grad_output.shape();
+        let data_a_bc = data_a.broadcast(broadcast_shape).unwrap();
+        let data_b_bc = data_b.broadcast(broadcast_shape).unwrap();
+        
+        let mut out = ArrayD::zeros(grad_output.raw_dim());
+        cpu::pow_cpu(data_a_bc, (data_b_bc.to_owned() - 1.0).view(), out.view_mut());
+        data_b_bc.to_owned() * out * &grad_output
     },
-    |_data_a, _data_b, grad_output: ArrayViewD<f32>| -&grad_output //TODO
+    |data_a: &ArrayD<f32>, data_b: &ArrayD<f32>, grad_output: ArrayViewD<f32>| {
+        // Broadcast data_a and data_b to match grad_output shape
+        let broadcast_shape = grad_output.shape();
+        let data_a_bc = data_a.broadcast(broadcast_shape).unwrap();
+        let data_b_bc = data_b.broadcast(broadcast_shape).unwrap();
+        
+        let safe_data = data_a_bc.mapv(|a| if a <= 0.0 { 1e-10 } else { a });
+        
+        let mut pow_result = ArrayD::zeros(grad_output.raw_dim());
+        cpu::pow_cpu(data_a_bc, data_b_bc, pow_result.view_mut());
+        
+        let ln_data = safe_data.mapv(|a| a.ln());
+        
+        pow_result * ln_data * &grad_output
+    }
 );
 
 implement_bitwise_backward!(
