@@ -18,7 +18,6 @@ pub fn pow_cpu(a: ArrayViewD<f32>, b: ArrayViewD<f32>, out: ArrayViewMutD<f32>) 
 }
 
 pub fn dot_cpu(a: ArrayViewD<f32>, b: ArrayViewD<f32>, out: ArrayViewMutD<f32>) {
-    //out.assign(&a.dot(b));
     let a_shape = a.shape();
     let b_shape = b.shape();
 
@@ -34,10 +33,21 @@ pub fn dot_cpu(a: ArrayViewD<f32>, b: ArrayViewD<f32>, out: ArrayViewMutD<f32>) 
     /* out.to_shape(Ix2(rows_a, cols_b)); //to_shape no modifica el objeto
     ndarray::linalg::general_mat_mul(1.0, &a_2d, &b_2d, 0.0, out); */
 
-    let mut out_2d = out.to_shape(Ix2(rows_a, cols_b)).unwrap();
+    /* Poco eficiente:
+    let mut result_2d = ndarray::Array2::zeros((rows_a, cols_b));
 
     // Debido a que out es un ArrayViewMutD, cualquier cambio realizado a través de la vista out_2d afecta directamente al mismo bloque de memoria
+    ndarray::linalg::general_mat_mul(1.0, &a_2d, &b_2d, 0.0, &mut result_2d);
+
+
+    let result_shape = out.shape().to_vec();
+    let result_reshaped = result_2d.to_shape(ndarray::IxDyn(&result_shape)).unwrap();
+    out.assign(&result_reshaped); */
+
+    // into_shape_with_order ya que general_mat_mul requiere que los datos esten de forma contigua en memoria
+    let mut out_2d = out.into_shape_with_order((rows_a, cols_b)).unwrap();
     ndarray::linalg::general_mat_mul(1.0, &a_2d, &b_2d, 0.0, &mut out_2d);
+
 }
 
 pub fn div_cpu(a: ArrayViewD<f32>, b: ArrayViewD<f32>, out: ArrayViewMutD<f32>) {
