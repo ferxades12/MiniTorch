@@ -52,19 +52,24 @@ pub fn get_dot_shape(a: &[usize], b: &[usize]) -> Vec<usize> {
 
 
 pub fn unbroadcast(grad:CowArray<f32, IxDyn>, target_shape:Vec<usize>) -> CowArray<f32, IxDyn>{
-    let extra_dims = grad.shape().len() - target_shape.len();
-    let reduced_grad = (0..extra_dims).fold(grad.into_owned(), |acc, _|{
-        acc.sum_axis(Axis(0))
-    });
+    if grad.shape() == target_shape {
+        return grad;
+    }
 
-    let result = target_shape.iter().enumerate().fold(reduced_grad, |acc, (i, &dim)|{
-        if dim == 1{
-            //sum() con keepdims = True
-            acc.sum_axis(Axis(i)).insert_axis(Axis(i))
-        }else {
-            acc
+    let mut current_grad = grad.into_owned();
+
+    let extra_dims = current_grad.shape().len().saturating_sub(target_shape.len());
+    for _ in 0..extra_dims {
+        current_grad = current_grad.sum_axis(Axis(0));
+    }
+
+    for (i, &target_dim) in target_shape.iter().enumerate() {
+        if target_dim == 1 && current_grad.shape()[i] > 1 {
+            current_grad = current_grad
+                .sum_axis(Axis(i))
+                .insert_axis(Axis(i));
         }
-    });
-    
-    CowArray::from(result)
+    }
+
+    CowArray::from(current_grad)
 }
