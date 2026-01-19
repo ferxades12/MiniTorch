@@ -185,6 +185,17 @@ impl Tensor {
         Ok(result)
     }
 
+    fn dot(&self, other: &Tensor) -> PyResult<Tensor> {
+        let result = self.dispatch_dot(
+            other,
+            cpu::dot_cpu,
+            |a: Tensor, b: Tensor| BackwardNode::DotBackward(
+                crate::autograd::DotBackward { tensor: a, other: b }
+            )
+        );
+        Ok(result)
+    }
+
     #[pyo3(signature = (grad=None))]
     pub fn backward(&self, grad: Option<PyReadonlyArrayDyn<f32>>) -> PyResult<()> {
         let grad_view = grad.as_ref().map(|g| g.as_array());
@@ -269,11 +280,41 @@ impl Tensor {
         }
     }
 
+    fn dispatch_dot<F>(
+        &self,
+        rhs: &Tensor,
+        kernel_cpu: fn(ArrayViewD<f32>, ArrayViewD<f32>, ArrayViewMutD<f32>),
+        make_node: F,
+    ) -> Tensor
+    where
+        F: FnOnce(Tensor, Tensor) -> BackwardNode,
+    {
+        let out = match (&*self.data, &*rhs.data) {
+            (Device::CPU(a), Device::CPU(b)) => {
+                let out_shape = util::get_dot_shape(a.shape(), b.shape());
+                let mut out = ArrayD::zeros(IxDyn(&out_shape));
+                kernel_cpu(a.view(), b.view(), out.view_mut());
+                Device::CPU(out)
+            }
+            _ => {
+                panic!("Unimplemented");
+            }
+        };
+
+        if self.requires_grad || rhs.requires_grad {
+            let grad_fn = Some(Arc::new(make_node(self.clone(), rhs.clone())));
+
+            result_tensor_requires_grad(out, None, grad_fn).unwrap()
+        } else {
+            result_tensor_no_requires_grad(out).unwrap()
+        }
+    }
+
     // El shape de out es fijo
     fn dispatch_unary_op<F>(
         &self,
         kernel_cpu: fn(ArrayViewD<f32>, ArrayViewMutD<f32>),
-        make_node: F,
+        make_node: F
     ) -> Tensor
     where
         F: FnOnce(Tensor) -> BackwardNode,
@@ -375,6 +416,30 @@ impl Tensor {
         match self.grad_fn.as_ref() {
             None => panic!("Tensor has no gradient function"),
             Some(grad_fn) => grad_fn.apply(grad_view),
+        }
+    }
+
+    pub fn _transpose(self) -> Tensor {
+        let out = match &*self.data {
+            Device::CPU(a) => {
+                let t = a.t();
+                let mut out = ArrayD::zeros(t.raw_dim());
+                cpu::transpose_cpu(a.view(), out.view_mut());
+                Device::CPU(out)
+            }
+            _ => {
+                panic!("Unimplemented");
+            }
+        };
+
+        if self.requires_grad {
+            let grad_fn = Some(Arc::new(BackwardNode::TransposeBackward(
+                crate::autograd::TransposeBackward { tensor: self }
+            )));
+
+            result_tensor_requires_grad(out, None, grad_fn).unwrap()
+        } else {
+            result_tensor_no_requires_grad(out).unwrap()
         }
     }
 }
@@ -531,7 +596,7 @@ macro_rules! impl_binary_op {
     };
 }
 
-macro_rules! impl_unary_op {
+macro_rules! impl_unary_fixed_shape_op {
     ($($trait:ident);*) => {
         $( //Multiples llamadas
             paste::paste! { // Para pasar Add en vez de (Add, add, AddBackward)
@@ -552,4 +617,4 @@ macro_rules! impl_unary_op {
 
 impl_binary_op!(Add; Mul; Sub; Div);
 
-impl_unary_op!(Abs; Transpose);
+impl_unary_fixed_shape_op!(Abs);
