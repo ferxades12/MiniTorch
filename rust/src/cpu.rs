@@ -62,3 +62,7 @@ pub fn abs_cpu(a: ArrayViewD<f32>, out: ArrayViewMutD<f32>) {
 pub fn transpose_cpu(a: ArrayViewD<f32>, mut out: ArrayViewMutD<f32>) {
     out.assign(&a.t());
 }
+
+pub fn log_cpu(a: ArrayViewD<f32>, out: ArrayViewMutD<f32>) {
+    azip!((out in out, &a in a) *out = a.ln())
+}
