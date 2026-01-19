@@ -100,20 +100,54 @@ impl Tensor {
     }
 
     // Python operator overloads
-    fn __add__(&self, rhs: &Tensor) -> PyResult<Tensor> {
-        Ok(self + rhs)
+    fn __add__(&self, rhs: Bound<'_, PyAny>) -> PyResult<Tensor> {
+        if let Ok(rhs_tensor) = rhs.extract::<PyRef<Tensor>>() {
+            return Ok(self + &*rhs_tensor);
+        }
+
+        if let Ok(rhs_scalar) = rhs.extract::<f32>() {
+            return Ok(self + rhs_scalar);
+        }
+
+        Err(PyNotImplementedError::new_err(
+            "Unsupported operand type(s) for +",
+        ))
     }
 
-    fn __mul__(&self, rhs: &Tensor) -> PyResult<Tensor> {
-        Ok(self * rhs)
+    fn __mul__(&self, rhs: Bound<'_, PyAny>) -> PyResult<Tensor> {
+        if let Ok(rhs_tensor) = rhs.extract::<PyRef<Tensor>>() {
+            return Ok(self * &*rhs_tensor);
+        }
+        if let Ok(rhs_scalar) = rhs.extract::<f32>() {
+            return Ok(self * rhs_scalar);
+        }
+        Err(PyNotImplementedError::new_err(
+            "Unsupported operand type(s) for *",
+        ))
     }
 
-    fn __sub__(&self, rhs: &Tensor) -> PyResult<Tensor> {
-        Ok(self - rhs)
+    fn __sub__(&self, rhs: Bound<'_, PyAny>) -> PyResult<Tensor> {
+        if let Ok(rhs_tensor) = rhs.extract::<PyRef<Tensor>>() {
+            return Ok(self - &*rhs_tensor);
+        }
+        if let Ok(rhs_scalar) = rhs.extract::<f32>() {
+            return Ok(self - rhs_scalar);
+        }
+        Err(PyNotImplementedError::new_err(
+            "Unsupported operand type(s) for -",
+        ))
     }
 
-    fn __truediv__(&self, rhs: &Tensor) -> PyResult<Tensor> {
-        Ok(self / rhs)
+    fn __truediv__(&self, rhs: Bound<'_, PyAny>) -> PyResult<Tensor> {
+        if let Ok(rhs_tensor) = rhs.extract::<PyRef<Tensor>>() {
+            return Ok(self / &*rhs_tensor);
+        }
+        if let Ok(rhs_scalar) = rhs.extract::<f32>() {
+            return Ok(self / rhs_scalar);
+        }
+        Err(PyNotImplementedError::new_err(
+            "Unsupported operand type(s) for /",
+        ))
     }
 
     fn abs(&self) -> PyResult<Tensor> {
@@ -124,9 +158,18 @@ impl Tensor {
         Ok(self.clone()._transpose())
     }
 
-    fn __pow__(&self, rhs: &Tensor, _modulo: Option<&Tensor>) -> PyResult<Tensor> {
-        Ok(self.clone()._pow(rhs))
+    fn __pow__(&self, rhs: Bound<'_, PyAny>, _modulo: Option<Bound<'_, PyAny>>) -> PyResult<Tensor> {
+        if let Ok(rhs_tensor) = rhs.extract::<PyRef<Tensor>>() {
+            return Ok(self.clone()._pow(&*rhs_tensor));
+        }
+        if let Ok(rhs_scalar) = rhs.extract::<f32>() {
+            return Ok(self.clone()._pow_scalar(rhs_scalar));
+        }
+        Err(PyNotImplementedError::new_err(
+            "Unsupported operand type(s) for **",
+        ))
     }
+
     #[pyo3(signature = (axis=None))]
     fn sum(&self, axis: Option<usize>) -> PyResult<Tensor> {
         /* let ax = match axis {
@@ -299,6 +342,14 @@ impl Tensor {
         self.dispatch_binary_op(rhs, cpu::pow_cpu, |a: Tensor, b: Tensor| {
             BackwardNode::PowBackward(crate::autograd::PowBackward { tensor: a, other: b })
         })
+    }
+
+    fn _pow_scalar(self, rhs: f32) -> Tensor {
+        let rhs_tensor = match *self.data{
+            Device::CPU(_) => result_tensor_no_requires_grad(Device::CPU(ArrayD::from_elem(IxDyn(&[]), rhs))).unwrap(),
+            Device::CUDA(_) => panic!("CUDA not implemented")
+        };
+        self._pow(&rhs_tensor)
     }
 
     fn numel(&self) -> usize {
@@ -476,11 +527,6 @@ macro_rules! impl_binary_op {
         $(
             impl_tensor_op!($trait);
             impl_scalar_op!($trait, f32);
-            impl_scalar_op!($trait, i32);
-            impl_scalar_op!($trait, i64);
-            impl_scalar_op!($trait, u32);
-            impl_scalar_op!($trait, u64);
-            impl_scalar_op!($trait, f64);
         )*
     };
 }
